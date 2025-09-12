@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useClerk, useUser } from "@clerk/nextjs";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useRouter } from "next/navigation";
@@ -15,6 +15,8 @@ import type { Id } from "@/convex/_generated/dataModel";
 export default function ClientRedirect() {
   const { user, isLoaded } = useUser();
   const router = useRouter();
+
+  const { signOut } = useClerk();
   const [selectedWorkspace, setSelectedWorkspace] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   
@@ -65,7 +67,7 @@ export default function ClientRedirect() {
     // If client has multiple workspaces, they need to choose (handled in UI below)
   }, [user, isLoaded, currentUser, workspaces, router]);
 
-  const handleSelectWorkspace = (workspace: any) => {
+  const handleSelectWorkspace = (workspace: { _id: string; slug: string; onboardingCompleted: boolean }) => {
     setSelectedWorkspace(workspace._id);
     
     // Redirect to the selected workspace
@@ -133,7 +135,7 @@ export default function ClientRedirect() {
               Your email: <span className="font-medium">{user?.emailAddresses[0].emailAddress}</span>
             </p>
             <Button 
-              onClick={() => router.push("/sign-out")} 
+              onClick={() => signOut()} 
               variant="outline"
               className="w-full"
             >
