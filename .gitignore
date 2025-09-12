@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/react-email-starter/node_modules
+
+# Sentry Config File
+.env.sentry-build-plugin

@@ -1,0 +1,273 @@
+// convex/schema.ts
+import { defineSchema, defineTable } from "convex/server";
+import { v } from "convex/values";
+
+export default defineSchema({
+  // Users table - linked to Clerk
+  users: defineTable({
+    clerkId: v.string(),
+    email: v.string(),
+    name: v.optional(v.string()),
+    imageUrl: v.optional(v.string()),
+    role: v.union(v.literal("admin"), v.literal("client")),
+    createdAt: v.number(),
+    clientCode: v.string(),
+    updatedAt: v.number(),
+    isProvisional: v.optional(v.boolean()), // True for invited but not accepted users
+    provisionalExpiresAt: v.optional(v.number()), // Timestamp when provisional user expires
+    lastClerkSync: v.optional(v.number()), 
+    deletedAt: v.optional(v.number()),
+  })
+    .index("by_clerk_id", ["clerkId"])
+    .index("by_email", ["email"])
+    .index("by_client_code", ["clientCode"])
+    .index("by_provisional", ["isProvisional", "provisionalExpiresAt"]),
+
+  // Workspaces - each client gets one
+  workspaces: defineTable({
+    name: v.string(),
+    slug: v.string(), // URL-friendly identifier
+    ownerId: v.id("users"), // The client user
+    createdBy: v.id("users"), // Admin who created it
+
+    // Onboarding data
+    businessInfo: v.optional(
+      v.object({
+        businessName: v.string(),
+        contactPerson: v.string(),
+        email: v.string(),
+        phone: v.optional(v.string()),
+        address: v.optional(v.string()),
+        website: v.optional(v.string()),
+        socialLinks: v.optional(
+          v.array(
+            v.object({
+              platform: v.string(),
+              url: v.string(),
+            })
+          )
+        ),
+      })
+    ),
+
+    goals: v.optional(
+      v.object({
+        services: v.array(v.string()),
+        mainGoals: v.array(v.string()), // More leads, better design, online bookings, etc.
+        specialNotes: v.optional(v.string()),
+      })
+    ),
+
+    // Theme settings
+    theme: v.union(
+      v.literal("notebook"),
+      v.literal("coffee"),
+      v.literal("graphite"),
+      v.literal("mono")
+    ),
+    darkMode: v.boolean(),
+
+    // Brand assets
+    brandAssets: v.optional(
+      v.object({
+        logoId: v.optional(v.id("_storage")),
+        primaryColor: v.optional(v.string()),
+        secondaryColor: v.optional(v.string()),
+        additionalFiles: v.optional(v.array(v.id("_storage"))),
+        uploadLater: v.optional(v.boolean()),
+      })
+    ),
+
+    // Policies
+    policies: v.optional(
+      v.object({
+        enableAnalytics: v.boolean(),
+        enableNotifications: v.boolean(),
+        dataConsent: v.boolean(),
+      })
+    ),
+
+    // Status
+    onboardingCompleted: v.boolean(),
+    onboardingStep: v.number(), // Current step in onboarding (1-7)
+    projectBriefId: v.optional(v.id("_storage")), // Generated project brief document
+
+    // Metadata
+    inviteStatus: v.union(
+      v.literal("pending"),
+      v.literal("accepted"),
+      v.literal("completed")
+    ),
+    invitedEmail: v.string(),
+    inviteToken: v.optional(v.string()),
+    inviteSentAt: v.optional(v.number()),
+
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_owner", ["ownerId"])
+    .index("by_slug", ["slug"])
+    .index("by_invite_token", ["inviteToken"])
+    .index("by_invited_email", ["invitedEmail"]),
+
+  // Notes - collaborative markdown documents
+  notes: defineTable({
+    workspaceId: v.id("workspaces"),
+    title: v.string(),
+    content: v.string(), // JSON string from BlockNote
+    emoji: v.optional(v.string()),
+    coverImage: v.optional(v.id("_storage")),
+    isArchived: v.boolean(),
+    isPinned: v.boolean(),
+
+    createdBy: v.id("users"),
+    lastEditedBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_workspace", ["workspaceId", "isArchived"])
+    .index("by_workspace_pinned", ["workspaceId", "isPinned"]),
+
+  // Tasks - Kanban board items
+  tasks: defineTable({
+    workspaceId: v.id("workspaces"),
+    title: v.string(),
+    description: v.optional(v.string()),
+    status: v.union(
+      v.literal("todo"),
+      v.literal("in_progress"),
+      v.literal("review"),
+      v.literal("done")
+    ),
+    priority: v.union(
+      v.literal("low"),
+      v.literal("medium"),
+      v.literal("high"),
+      v.literal("urgent")
+    ),
+    position: v.number(), // For ordering within columns
+
+    assignedTo: v.optional(v.id("users")),
+    dueDate: v.optional(v.number()),
+    completedAt: v.optional(v.number()),
+
+    labels: v.optional(v.array(v.string())),
+    attachments: v.optional(v.array(v.id("_storage"))),
+
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_workspace_status", ["workspaceId", "status"])
+    .index("by_workspace", ["workspaceId"])
+    .index("by_assigned", ["assignedTo"]),
+
+  // Canvas - Excalidraw data
+  canvases: defineTable({
+    workspaceId: v.id("workspaces"),
+    name: v.string(),
+    data: v.string(), // JSON string of Excalidraw data
+    thumbnail: v.optional(v.id("_storage")),
+
+    isShared: v.boolean(),
+    shareToken: v.optional(v.string()),
+
+    createdBy: v.id("users"),
+    lastEditedBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_share_token", ["shareToken"]),
+
+  // Files - uploaded documents
+  files: defineTable({
+    workspaceId: v.id("workspaces"),
+    storageId: v.id("_storage"),
+    name: v.string(),
+    mimeType: v.string(),
+    size: v.number(),
+    customId: v.string(),
+    fileType: v.string(), // "logo", "brandAsset", "document"
+
+    folderId: v.optional(v.id("folders")),
+    description: v.optional(v.string()),
+    tags: v.optional(v.array(v.string())),
+
+    uploadedBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_folder", ["folderId"])
+    .index("by_custom_id", ["customId"]),
+
+  // Folders for file organization
+  folders: defineTable({
+    workspaceId: v.id("workspaces"),
+    name: v.string(),
+    parentId: v.optional(v.id("folders")),
+    color: v.optional(v.string()),
+
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_parent", ["parentId"]),
+
+  // Activity log for audit trail
+  activities: defineTable({
+    workspaceId: v.id("workspaces"),
+    userId: v.id("users"),
+    action: v.string(), // "created_task", "uploaded_file", etc.
+    entityType: v.string(), // "task", "note", "file", etc.
+    entityId: v.optional(v.string()),
+    metadata: v.optional(v.any()), // Additional context
+
+    createdAt: v.number(),
+  })
+    .index("by_workspace", ["workspaceId", "createdAt"])
+    .index("by_user", ["userId"]),
+
+    //Notifications
+    notifications: defineTable({
+      workspaceId: v.id("workspaces"),
+      type: v.string(),
+      subject: v.string(),
+      recipient: v.string(),
+      status: v.string(),
+      sentAt: v.number(),
+    }),
+
+    payments: defineTable({
+      workspaceId: v.id("workspaces"),
+      serviceName: v.string(),
+      serviceDescription: v.string(),
+      amount: v.number(), // in cents
+      currency: v.string(), // USD, EUR, etc
+      stripeLink: v.string(), // The Stripe payment link URL
+      invoiceNumber: v.string(), // Simple invoice number
+      status: v.string(), // pending, paid
+      createdAt: v.number(),
+      deliveryTime: v.optional(v.string()),
+    })
+      .index("by_workspace", ["workspaceId"])
+      .index("by_status", ["status"]),
+    
+    coupons: defineTable({
+      code: v.string(),
+      description: v.string(),
+      stripeCouponId: v.optional(v.string()), // If you want to track Stripe coupon ID
+      isActive: v.boolean(),
+      createdAt: v.number(),
+    })
+      .index("by_code", ["code"]),
+    
+    services: defineTable({
+      name: v.string(),
+      description: v.string(),
+      stripePriceId: v.optional(v.string()), // Stripe price ID if needed
+      createdAt: v.number(),
+    }),
+});
