@@ -49,16 +49,16 @@ export default function ClientRedirect() {
       return;
     }
 
-    // Wait for data to load
-    if (currentUser === undefined || workspaces === undefined) {
-      console.log("Data still loading:", { currentUser: currentUser === undefined ? "undefined" : "loaded", workspaces: workspaces === undefined ? "undefined" : "loaded" });
-      return;
-    }
-
-    console.log("Checking admin role:", { role: currentUser?.role, isAdmin: currentUser?.role === "admin" });
+    // For admin users, we don't need to wait for workspaces
     if (currentUser?.role === "admin") {
       console.log("Admin user detected, redirecting to dashboard");
       router.push("/dashboard");
+      return;
+    }
+
+    // For non-admin users, wait for all data to load
+    if (currentUser === undefined || workspaces === undefined) {
+      console.log("Data still loading:", { currentUser: currentUser === undefined ? "undefined" : "loaded", workspaces: workspaces === undefined ? "undefined" : "loaded" });
       return;
     }
 
