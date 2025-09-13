@@ -14,8 +14,6 @@ export const getCurrentUser = query({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
-    console.log("getCurrentUser - identity:", identity ? { subject: identity.subject, email: identity.email } : null);
-    
     if (!identity) return null;
 
     const user = await ctx.db
@@ -23,23 +21,10 @@ export const getCurrentUser = query({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
       .first();
 
-    console.log("getCurrentUser - found user:", user ? { id: user._id, role: user.role, email: user.email } : null);
     return user;
   },
 });
 
-export const debugAllUsers = query({
-  args: {},
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return null;
-    
-    const allUsers = await ctx.db.query("users").collect();
-    console.log("All users in database:", allUsers.map(u => ({ id: u._id, email: u.email, role: u.role, clerkId: u.clerkId })));
-    
-    return allUsers.map(u => ({ id: u._id, email: u.email, role: u.role, clerkId: u.clerkId }));
-  },
-});
 
 export const createOrUpdateUser = mutation({
   args: {

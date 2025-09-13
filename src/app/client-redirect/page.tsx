@@ -23,57 +23,29 @@ export default function ClientRedirect() {
   const currentUser = useQuery(api.users.getCurrentUser);
   const workspaces = useQuery(api.workspaces.getMyWorkspaces);
   const deleteWorkspace = useMutation(api.workspaces.deleteWorkspace);
-  const allUsers = useQuery(api.users.debugAllUsers);
-
-  console.log("Debug info:", {
-    isLoaded,
-    user: user ? { id: user.id, email: user.emailAddresses[0]?.emailAddress } : null,
-    currentUser,
-    workspaces: workspaces?.length || 0,
-    currentUserRole: currentUser?.role,
-    currentUserExists: !!currentUser,
-    allUsers
-  });
 
   useEffect(() => {
-    console.log("useEffect triggered:", { isLoaded, user: !!user, currentUser: !!currentUser, workspaces: !!workspaces });
-    
-    if (!isLoaded) {
-      console.log("Clerk not loaded yet");
-      return;
-    }
+    if (!isLoaded) return;
     
     if (!user) {
-      console.log("No user, redirecting to sign-in");
       router.push("/sign-in");
       return;
     }
 
     // Wait for currentUser to load (undefined = loading, null = not found)
-    if (currentUser === undefined) {
-      console.log("currentUser still loading...");
-      return;
-    }
+    if (currentUser === undefined) return;
 
     // If currentUser is null, the user doesn't exist in our database
-    if (currentUser === null) {
-      console.log("User not found in database, need to create user record");
-      // You might want to redirect to a user creation page or show an error
-      return;
-    }
+    if (currentUser === null) return;
 
     // For admin users, we don't need to wait for workspaces
     if (currentUser.role === "admin") {
-      console.log("Admin user detected, redirecting to dashboard");
       router.push("/dashboard");
       return;
     }
 
     // For non-admin users, wait for workspaces to load
-    if (workspaces === undefined) {
-      console.log("Workspaces still loading...");
-      return;
-    }
+    if (workspaces === undefined) return;
 
     // If a user record exists but is not a client, block access
     // Allow null (not yet created) to continue so we can inspect workspaces/UI
