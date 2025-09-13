@@ -165,8 +165,8 @@ export default function ClientRedirect() {
                 <div>
                   <p>Users in DB:</p>
                   <ul className="ml-2">
-                    {allUsers.map((u, i) => (
-                      <li key={i}>
+                    {allUsers.map((u) => (
+                      <li key={u.id}>
                         {u.email} (ID: {u.clerkId}, Role: {u.role})
                       </li>
                     ))}
