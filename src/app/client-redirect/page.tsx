@@ -49,16 +49,29 @@ export default function ClientRedirect() {
       return;
     }
 
+    // Wait for currentUser to load (undefined = loading, null = not found)
+    if (currentUser === undefined) {
+      console.log("currentUser still loading...");
+      return;
+    }
+
+    // If currentUser is null, the user doesn't exist in our database
+    if (currentUser === null) {
+      console.log("User not found in database, need to create user record");
+      // You might want to redirect to a user creation page or show an error
+      return;
+    }
+
     // For admin users, we don't need to wait for workspaces
-    if (currentUser?.role === "admin") {
+    if (currentUser.role === "admin") {
       console.log("Admin user detected, redirecting to dashboard");
       router.push("/dashboard");
       return;
     }
 
-    // For non-admin users, wait for all data to load
-    if (currentUser === undefined || workspaces === undefined) {
-      console.log("Data still loading:", { currentUser: currentUser === undefined ? "undefined" : "loaded", workspaces: workspaces === undefined ? "undefined" : "loaded" });
+    // For non-admin users, wait for workspaces to load
+    if (workspaces === undefined) {
+      console.log("Workspaces still loading...");
       return;
     }
 
@@ -133,6 +146,43 @@ export default function ClientRedirect() {
           <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
           <p className="text-muted-foreground">Loading your workspace...</p>
         </div>
+      </div>
+    );
+  }
+
+  // User not found in database
+  if (currentUser === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="max-w-md">
+          <CardHeader>
+            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-muted mb-4">
+              <AlertCircle className="w-6 h-6 text-muted-foreground" />
+            </div>
+            <CardTitle>User Not Found</CardTitle>
+            <CardDescription>
+              Your account exists in Clerk but not in our database. This usually happens for admin users.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="text-sm text-muted-foreground">
+              <p><strong>Your Clerk ID:</strong> {user?.id}</p>
+              <p><strong>Your Email:</strong> {user?.emailAddresses[0]?.emailAddress}</p>
+            </div>
+            <div className="p-4 bg-muted rounded-lg">
+              <p className="text-sm">
+                <strong>For Admin Users:</strong> Use the <code>createAdminUser</code> mutation in Convex with your Clerk ID and admin secret.
+              </p>
+            </div>
+            <Button 
+              onClick={() => signOut()} 
+              variant="outline"
+              className="w-full"
+            >
+              Sign Out
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
