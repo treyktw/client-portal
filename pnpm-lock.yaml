@@ -179,6 +179,9 @@ importers:
       nookies:
         specifier: ^2.5.2
         version: 2.5.2
+      prettier:
+        specifier: ^3.6.2
+        version: 3.6.2
       react:
         specifier: 19.1.0
         version: 19.1.0

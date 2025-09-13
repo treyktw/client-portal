@@ -1,7 +1,7 @@
 // app/onboarding/[workspaceId]/business-info/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -67,6 +67,13 @@ export default function BusinessInfoPage() {
   const validateEmailMutation = trpc.validation.validateEmail.useMutation();
   const validateWebsiteMutation = trpc.validation.validateWebsite.useMutation();
   const placesAutocompleteMutation = trpc.validation.placesAutocomplete.useMutation();
+  
+  // Use refs to avoid dependency issues
+  const validateEmailMutationRef = useRef(validateEmailMutation);
+  const validateWebsiteMutationRef = useRef(validateWebsiteMutation);
+  
+  validateEmailMutationRef.current = validateEmailMutation;
+  validateWebsiteMutationRef.current = validateWebsiteMutation;
 
   const [formData, setFormData] = useState({
     businessName: "",
@@ -95,70 +102,70 @@ export default function BusinessInfoPage() {
   const debouncedWebsite = useDebounce(formData.website, 1000);
 
   // Email validation with deliverability check
-  useEffect(() => {
-    if (!debouncedEmail) {
+  const validateEmail = useCallback(async (email: string) => {
+    if (!email) {
       setValidation(v => ({ ...v, email: { valid: true, message: "" } }));
       return;
     }
 
-    const validateEmail = async () => {
-      // Basic format check
-      if (!emailRegex.test(debouncedEmail)) {
-        setValidation(v => ({ 
-          ...v, 
-          email: { valid: false, message: "Invalid email format" } 
-        }));
-        return;
-      }
+    // Basic format check
+    if (!emailRegex.test(email)) {
+      setValidation(v => ({ 
+        ...v, 
+        email: { valid: false, message: "Invalid email format" } 
+      }));
+      return;
+    }
 
-      // Check deliverability via tRPC
-      try {
-        const result = await validateEmailMutation.mutateAsync({ email: debouncedEmail });
-        setValidation(v => ({ 
-          ...v, 
-          email: { 
-            valid: result.valid, 
-            message: result.valid ? "✓ Email verified" : result.message 
-          } 
-        }));
-      } catch (error) {
-        setValidation(v => ({ 
-          ...v, 
-          email: { valid: true, message: "" } 
-        }));
-        toast.error("Failed to validate email", {
-          description: error instanceof Error ? error.message : "Unknown error",
-        });
-      }
-    };
+    // Check deliverability via tRPC
+    try {
+      const result = await validateEmailMutationRef.current.mutateAsync({ email });
+      setValidation(v => ({ 
+        ...v, 
+        email: { 
+          valid: result.valid, 
+          message: result.valid ? "✓ Email verified" : result.message 
+        } 
+      }));
+    } catch (error) {
+      setValidation(v => ({ 
+        ...v, 
+        email: { valid: true, message: "" } 
+      }));
+      toast.error("Failed to validate email", {
+        description: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }, []);
 
-    validateEmail();
-  }, [debouncedEmail, validateEmailMutation]);
+  useEffect(() => {
+    validateEmail(debouncedEmail);
+  }, [debouncedEmail, validateEmail]);
 
   // Website validation
-  useEffect(() => {
-    if (!debouncedWebsite) {
+  const checkWebsite = useCallback(async (website: string) => {
+    if (!website) {
       setValidation(v => ({ ...v, website: { valid: true, message: "", checking: false } }));
       return;
     }
 
-    const checkWebsite = async () => {
-      setValidation(v => ({ ...v, website: { ...v.website, checking: true } }));
-      
-      const result = await validateWebsite(debouncedWebsite, validateWebsiteMutation);
-      
-      setValidation(v => ({ 
-        ...v, 
-        website: { 
-          valid: result.valid, 
-          message: result.valid ? "✓ Website is active" : result.error || "Website not reachable",
-          checking: false
-        } 
-      }));
-    };
+    setValidation(v => ({ ...v, website: { ...v.website, checking: true } }));
+    
+    const result = await validateWebsite(website, validateWebsiteMutationRef.current);
+    
+    setValidation(v => ({ 
+      ...v, 
+      website: { 
+        valid: result.valid, 
+        message: result.valid ? "✓ Website is active" : result.error || "Website not reachable",
+        checking: false
+      } 
+    }));
+  }, []);
 
-    checkWebsite();
-  }, [debouncedWebsite, validateWebsiteMutation]);
+  useEffect(() => {
+    checkWebsite(debouncedWebsite);
+  }, [debouncedWebsite, checkWebsite]);
 
   // Handle phone input with formatting
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
