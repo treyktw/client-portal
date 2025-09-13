@@ -14,6 +14,8 @@ export const getCurrentUser = query({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
+    console.log("getCurrentUser - identity:", identity ? { subject: identity.subject, email: identity.email } : null);
+    
     if (!identity) return null;
 
     const user = await ctx.db
@@ -21,7 +23,21 @@ export const getCurrentUser = query({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
       .first();
 
+    console.log("getCurrentUser - found user:", user ? { id: user._id, role: user.role, email: user.email } : null);
     return user;
+  },
+});
+
+export const debugAllUsers = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+    
+    const allUsers = await ctx.db.query("users").collect();
+    console.log("All users in database:", allUsers.map(u => ({ id: u._id, email: u.email, role: u.role, clerkId: u.clerkId })));
+    
+    return allUsers.map(u => ({ id: u._id, email: u.email, role: u.role, clerkId: u.clerkId }));
   },
 });
 
@@ -77,6 +93,79 @@ export const createOrUpdateUser = mutation({
     });
 
     return userId;
+  },
+});
+
+export const createAdminUser = mutation({
+  args: {
+    clerkId: v.string(),
+    email: v.string(),
+    name: v.optional(v.string()),
+    imageUrl: v.optional(v.string()),
+    adminSecret: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Check admin secret from environment
+    const adminUserSecret = process.env.ADMIN_USER_SECRET;
+    if (!adminUserSecret || args.adminSecret !== adminUserSecret) {
+      throw new Error("Invalid admin secret");
+    }
+
+    // Check if user already exists
+    const existingUser = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .first();
+
+    if (existingUser) {
+      // Update existing user to admin role
+      await ctx.db.patch(existingUser._id, {
+        role: "admin",
+        updatedAt: Date.now(),
+      });
+      return { success: true, message: "User updated to admin role", userId: existingUser._id };
+    }
+
+    // Check if email already exists
+    const existingEmailUser = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .first();
+
+    if (existingEmailUser) {
+      throw new Error("User with this email already exists");
+    }
+
+    const now = Date.now();
+
+    // Generate unique client code
+    let clientCode = generateClientCode();
+    let codeExists = await ctx.db
+      .query("users")
+      .withIndex("by_client_code", (q) => q.eq("clientCode", clientCode))
+      .first();
+    
+    // Keep generating until we get a unique one
+    while (codeExists) {
+      clientCode = generateClientCode();
+      codeExists = await ctx.db
+        .query("users")
+        .withIndex("by_client_code", (q) => q.eq("clientCode", clientCode))
+        .first();
+    }
+
+    const userId = await ctx.db.insert("users", {
+      clerkId: args.clerkId,
+      email: args.email,
+      name: args.name,
+      imageUrl: args.imageUrl,
+      role: "admin",
+      clientCode,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return { success: true, message: "Admin user created successfully", userId };
   },
 });
 

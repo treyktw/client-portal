@@ -23,18 +23,39 @@ export default function ClientRedirect() {
   const currentUser = useQuery(api.users.getCurrentUser);
   const workspaces = useQuery(api.workspaces.getMyWorkspaces);
   const deleteWorkspace = useMutation(api.workspaces.deleteWorkspace);
+  const allUsers = useQuery(api.users.debugAllUsers);
+
+  console.log("Debug info:", {
+    isLoaded,
+    user: user ? { id: user.id, email: user.emailAddresses[0]?.emailAddress } : null,
+    currentUser,
+    workspaces: workspaces?.length || 0,
+    currentUserRole: currentUser?.role,
+    currentUserExists: !!currentUser,
+    allUsers
+  });
 
   useEffect(() => {
-    if (!isLoaded) return;
+    console.log("useEffect triggered:", { isLoaded, user: !!user, currentUser: !!currentUser, workspaces: !!workspaces });
+    
+    if (!isLoaded) {
+      console.log("Clerk not loaded yet");
+      return;
+    }
     
     if (!user) {
+      console.log("No user, redirecting to sign-in");
       router.push("/sign-in");
       return;
     }
 
     // Wait for data to load
-    if (currentUser === undefined || workspaces === undefined) return;
+    if (currentUser === undefined || workspaces === undefined) {
+      console.log("Data still loading:", { currentUser: currentUser === undefined ? "undefined" : "loaded", workspaces: workspaces === undefined ? "undefined" : "loaded" });
+      return;
+    }
 
+    console.log("Checking admin role:", { role: currentUser?.role, isAdmin: currentUser?.role === "admin" });
     if (currentUser?.role === "admin") {
       console.log("Admin user detected, redirecting to dashboard");
       router.push("/dashboard");
