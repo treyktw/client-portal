@@ -14,14 +14,49 @@ export const getCurrentUser = query({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return null;
+    if (!identity) {
+      console.log("No identity found in getCurrentUser");
+      return null;
+    }
+
+    console.log("Identity found:", {
+      subject: identity.subject,
+      issuer: identity.issuer,
+      email: identity.email,
+      name: identity.name
+    });
 
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
       .first();
 
+    console.log("User found in database:", user ? "YES" : "NO", user ? { id: user._id, clerkId: user.clerkId, email: user.email } : null);
+
     return user;
+  },
+});
+
+// Debug query to see all users
+export const debugAllUsers = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      console.log("No identity for debugAllUsers");
+      return [];
+    }
+
+    const allUsers = await ctx.db.query("users").collect();
+    console.log("All users in database:", allUsers.map(u => ({ id: u._id, clerkId: u.clerkId, email: u.email, role: u.role })));
+    
+    return allUsers.map(u => ({ 
+      id: u._id, 
+      clerkId: u.clerkId, 
+      email: u.email, 
+      role: u.role,
+      name: u.name 
+    }));
   },
 });
 

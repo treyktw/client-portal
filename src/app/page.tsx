@@ -3,7 +3,7 @@
 
 import { useEffect, useRef } from "react";
 import { useUser } from "@clerk/nextjs";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
@@ -12,7 +12,20 @@ export default function Home() {
   const { user, isLoaded } = useUser();
   const router = useRouter();
   const currentUser = useQuery(api.users.getCurrentUser);
+  const createUser = useMutation(api.users.createOrUpdateUser);
   const hasRedirected = useRef(false);
+
+  // Create/update user on first load
+  useEffect(() => {
+    if (user && !currentUser && isLoaded) {
+      createUser({
+        clerkId: user.id,
+        email: user.emailAddresses[0].emailAddress,
+        name: user.fullName || undefined,
+        imageUrl: user.imageUrl || undefined,
+      });
+    }
+  }, [user, currentUser, isLoaded, createUser]);
 
   useEffect(() => {
     // Prevent multiple redirects

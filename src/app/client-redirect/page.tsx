@@ -23,6 +23,20 @@ export default function ClientRedirect() {
   const currentUser = useQuery(api.users.getCurrentUser);
   const workspaces = useQuery(api.workspaces.getMyWorkspaces);
   const deleteWorkspace = useMutation(api.workspaces.deleteWorkspace);
+  const createUser = useMutation(api.users.createOrUpdateUser);
+  const allUsers = useQuery(api.users.debugAllUsers);
+
+  // Create/update user on first load
+  useEffect(() => {
+    if (user && !currentUser && isLoaded) {
+      createUser({
+        clerkId: user.id,
+        email: user.emailAddresses[0].emailAddress,
+        name: user.fullName || undefined,
+        imageUrl: user.imageUrl || undefined,
+      });
+    }
+  }, [user, currentUser, isLoaded, createUser]);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -141,6 +155,26 @@ export default function ClientRedirect() {
               <p><strong>Your Clerk ID:</strong> {user?.id}</p>
               <p><strong>Your Email:</strong> {user?.emailAddresses[0]?.emailAddress}</p>
             </div>
+            
+            {/* Debug Information */}
+            <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded text-xs space-y-1">
+              <p><strong>Debug Info:</strong></p>
+              <p>Current User: {currentUser ? "Found" : "Not Found"}</p>
+              <p>All Users Count: {allUsers?.length || 0}</p>
+              {allUsers && allUsers.length > 0 && (
+                <div>
+                  <p>Users in DB:</p>
+                  <ul className="ml-2">
+                    {allUsers.map((u, i) => (
+                      <li key={i}>
+                        {u.email} (ID: {u.clerkId}, Role: {u.role})
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+            
             <div className="p-4 bg-muted rounded-lg">
               <p className="text-sm">
                 <strong>For Admin Users:</strong> Use the <code>createAdminUser</code> mutation in Convex with your Clerk ID and admin secret.
