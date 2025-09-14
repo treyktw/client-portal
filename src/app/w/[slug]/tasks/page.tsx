@@ -390,7 +390,7 @@ export default function TasksPage() {
   }
 
   return (
-    <div className="h-[calc(100vh-8rem)] overflow-hidden flex flex-col">
+    <div className="h-[calc(100vh-8rem)] overflow-hidden flex flex-col justify-center items-center">
       {/* Sync Status Indicator */}
       <div className="absolute top-4 right-4 z-10">
         {syncStatus.pendingOperations > 0 ? (
@@ -406,7 +406,7 @@ export default function TasksPage() {
         )}
       </div>
       
-      <div className={`${isMobile ? 'p-2' : 'p-6'} h-full flex-1 overflow-hidden`}>
+      <div className={`${isMobile ? 'p-2' : 'p-6'} h-full flex-1 overflow-hidden justify-center items-center`}>
         <DragDropContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className={`flex ${isMobile ? 'gap-3 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent' : 'gap-6'} h-full`}>
             {columns.map((column) => {
