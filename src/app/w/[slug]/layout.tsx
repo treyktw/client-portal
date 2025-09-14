@@ -116,7 +116,7 @@ function WorkspaceHeader({
         {/* Center: Navigation tabs */}
         <div className="flex-1 flex justify-center">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid grid-cols-5">
+            <TabsList className="grid grid-cols-6 gap-2 space-x-2">
               <TabsTrigger value="notes" asChild>
                 <Link href={`/w/${use(params).slug}/notes`} className="flex items-center gap-1.5">
                   <FileText className="w-4 h-4" />
@@ -145,6 +145,12 @@ function WorkspaceHeader({
                 <Link href={`/w/${use(params).slug}/payment`} className="flex items-center gap-1.5">
                   <Folder className="w-4 h-4" />
                   <span className="hidden sm:inline">Payment</span>
+                </Link>
+              </TabsTrigger>
+              <TabsTrigger value="messages" asChild>
+                <Link href={`/w/${use(params).slug}/messages`} className="flex items-center gap-1.5">
+                  <Folder className="w-4 h-4" />
+                  <span className="hidden sm:inline">Messages</span>
                 </Link>
               </TabsTrigger>
             </TabsList>

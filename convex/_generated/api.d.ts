@@ -17,10 +17,13 @@ import type * as canvases from "../canvases.js";
 import type * as crons from "../crons.js";
 import type * as files from "../files.js";
 import type * as folders from "../folders.js";
+import type * as messagehelpers from "../messagehelpers.js";
+import type * as messages from "../messages.js";
 import type * as notes from "../notes.js";
 import type * as notifications from "../notifications.js";
 import type * as payments from "../payments.js";
 import type * as tasks from "../tasks.js";
+import type * as threads from "../threads.js";
 import type * as users from "../users.js";
 import type * as workspaces from "../workspaces.js";
 
@@ -37,10 +40,13 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   files: typeof files;
   folders: typeof folders;
+  messagehelpers: typeof messagehelpers;
+  messages: typeof messages;
   notes: typeof notes;
   notifications: typeof notifications;
   payments: typeof payments;
   tasks: typeof tasks;
+  threads: typeof threads;
   users: typeof users;
   workspaces: typeof workspaces;
 }>;

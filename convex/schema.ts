@@ -270,4 +270,77 @@ export default defineSchema({
       stripePriceId: v.optional(v.string()), // Stripe price ID if needed
       createdAt: v.number(),
     }),
+
+    threads: defineTable({
+      workspaceId: v.id("workspaces"),
+      title: v.string(),
+      createdBy: v.id("users"),
+      isDefault: v.boolean(), // true for "Project Chat"
+      lastMessageAt: v.optional(v.number()),
+      lastMessagePreview: v.optional(v.string()),
+      lastMessageAuthor: v.optional(v.id("users")),
+      pinnedMessageIds: v.optional(v.array(v.string())), // Store as strings to avoid circular dependency
+      memberIds: v.array(v.id("users")), // Thread participants
+      isArchived: v.optional(v.boolean()),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+    })
+      .index("by_workspace", ["workspaceId"])
+      .index("by_workspace_updated", ["workspaceId", "lastMessageAt"])
+      .index("by_workspace_archived", ["workspaceId", "isArchived"]),
+  
+    // Messages table
+    messages: defineTable({
+      threadId: v.id("threads"),
+      workspaceId: v.id("workspaces"),
+      authorId: v.id("users"),
+      body: v.string(), 
+  originalBody: v.optional(v.string()),
+      files: v.optional(v.array(v.id("files"))),
+      links: v.optional(v.array(v.object({
+        url: v.string(),
+        title: v.optional(v.string()),
+        favicon: v.optional(v.string()),
+      }))),
+      mentions: v.optional(v.array(v.id("users"))),
+      reactions: v.optional(v.array(v.object({
+        emoji: v.string(),
+        userId: v.id("users"),
+        createdAt: v.number(),
+      }))),
+      replyToId: v.optional(v.id("messages")), // For threading
+      editedAt: v.optional(v.number()),
+      editedBy: v.optional(v.id("users")),
+      deletedAt: v.optional(v.number()),
+      deletedBy: v.optional(v.id("users")),
+      isPinned: v.optional(v.boolean()),
+      createdAt: v.number(),
+    })
+      .index("by_thread", ["threadId", "createdAt"])
+      .index("by_workspace", ["workspaceId", "createdAt"])
+      .index("by_author", ["authorId"])
+      .index("by_thread_pinned", ["threadId", "isPinned"])
+      .index("by_deleted", ["deletedAt"]),
+  
+    // Message read tracking
+    messageReads: defineTable({
+      messageId: v.id("messages"),
+      userId: v.id("users"),
+      threadId: v.id("threads"),
+      workspaceId: v.id("workspaces"),
+      readAt: v.number(),
+    })
+      .index("by_user_thread", ["userId", "threadId"])
+      .index("by_thread_message", ["threadId", "messageId"])
+      .index("by_user_workspace", ["userId", "workspaceId"]),
+  
+    // Typing indicators (ephemeral)
+    typingIndicators: defineTable({
+      threadId: v.id("threads"),
+      userId: v.id("users"),
+      startedAt: v.number(),
+      expiresAt: v.number(), // Auto-expire after 5 seconds
+    })
+      .index("by_thread", ["threadId"])
+      .index("by_expires", ["expiresAt"]),
 });

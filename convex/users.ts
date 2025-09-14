@@ -15,23 +15,23 @@ export const getCurrentUser = query({
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      console.log("No identity found in getCurrentUser");
+      // console.log("No identity found in getCurrentUser");
       return null;
     }
 
-    console.log("Identity found:", {
-      subject: identity.subject,
-      issuer: identity.issuer,
-      email: identity.email,
-      name: identity.name
-    });
+    // console.log("Identity found:", {
+    //   subject: identity.subject,
+    //   issuer: identity.issuer,
+    //   email: identity.email,
+    //   name: identity.name
+    // });
 
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
       .first();
 
-    console.log("User found in database:", user ? "YES" : "NO", user ? { id: user._id, clerkId: user.clerkId, email: user.email } : null);
+    // console.log("User found in database:", user ? "YES" : "NO", user ? { id: user._id, clerkId: user.clerkId, email: user.email } : null);
 
     return user;
   },

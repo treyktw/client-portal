@@ -106,6 +106,29 @@ export const getWorkspaceFiles = query({
   },
 });
 
+// Get file URLs by file IDs (for message attachments)
+export const getFileUrls = query({
+  args: { fileIds: v.array(v.id("files")) },
+  handler: async (ctx, args) => {
+    if (args.fileIds.length === 0) return [];
+
+    const files = await Promise.all(
+      args.fileIds.map(async (fileId) => {
+        const file = await ctx.db.get(fileId);
+        if (!file) return null;
+        
+        const url = await ctx.storage.getUrl(file.storageId);
+        return {
+          ...file,
+          url,
+        };
+      })
+    );
+
+    return files.filter(f => f !== null);
+  },
+});
+
 
 export const moveFileToFolder = mutation({
   args: {
