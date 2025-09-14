@@ -1,3 +1,4 @@
+// app/layout.tsx
 import { Architects_Daughter, Fira_Code, Geist_Mono, Inter, Montserrat } from "next/font/google";
 import "./globals.css";
 
@@ -6,6 +7,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import ConvexClientProvider from "@/providers/ConvexClientProvider";
 import TRPCProvider from "@/providers/TRPCProvider";
 import { NavigationProgress } from "@/components/NavigationProgress";
+import MobileCheck from "@/components/MobileCheck";
 
 const firaCode = Fira_Code({
   variable: "--font-fira-code",
@@ -54,7 +56,9 @@ export default function RootLayout({
           <TRPCProvider>
             <ConvexClientProvider>
               <NavigationProgress />
-              {children}
+              <MobileCheck>
+                {children}
+              </MobileCheck>
             </ConvexClientProvider>
           </TRPCProvider>
         </ClerkProvider>

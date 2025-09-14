@@ -132,7 +132,7 @@ export default function InvitePage({
           </CardHeader>
           <CardContent>
             <Button 
-              onClick={() => router.push("/dashboard")} 
+              onClick={() => router.push("/admin")} 
               className="w-full"
               variant="outline"
             >

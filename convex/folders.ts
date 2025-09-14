@@ -121,3 +121,43 @@ export const moveFolder = mutation({
     });
   },
 });
+
+// Get or create onboarding folder
+export const getOrCreateOnboardingFolder = mutation({
+  args: {
+    workspaceId: v.id("workspaces"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .first();
+
+    if (!user) throw new Error("User not found");
+
+    // Check if onboarding folder already exists
+    const existingFolder = await ctx.db
+      .query("folders")
+      .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
+      .filter((q) => q.eq(q.field("name"), "Onboarding"))
+      .first();
+
+    if (existingFolder) {
+      return existingFolder._id;
+    }
+
+    // Create onboarding folder
+    const folderId = await ctx.db.insert("folders", {
+      workspaceId: args.workspaceId,
+      name: "Onboarding",
+      createdBy: user._id,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+
+    return folderId;
+  },
+});

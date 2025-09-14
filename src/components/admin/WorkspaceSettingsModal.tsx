@@ -1,4 +1,4 @@
-// components/dashboard/WorkspaceSettingsModal.tsx
+// components/admin/WorkspaceSettingsModal.tsx
 "use client";
 
 import { useState } from "react";

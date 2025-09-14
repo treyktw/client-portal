@@ -54,7 +54,7 @@ export default function ClientRedirect() {
 
     // For admin users, we don't need to wait for workspaces
     if (currentUser.role === "admin") {
-      router.push("/dashboard");
+      router.push("/admin");
       return;
     }
 

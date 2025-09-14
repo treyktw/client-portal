@@ -83,6 +83,7 @@ export default function PoliciesPage() {
           </Card>
 
           {/* Notifications */}
+          {/* TODO: Add SMS and Push notifications */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

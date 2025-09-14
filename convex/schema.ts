@@ -70,10 +70,10 @@ export default defineSchema({
     // Brand assets
     brandAssets: v.optional(
       v.object({
-        logoId: v.optional(v.id("_storage")),
+        logoId: v.optional(v.string()), // Store customId instead of storageId
         primaryColor: v.optional(v.string()),
         secondaryColor: v.optional(v.string()),
-        additionalFiles: v.optional(v.array(v.id("_storage"))),
+        additionalFiles: v.optional(v.array(v.string())), // Store customIds instead of storageIds
         uploadLater: v.optional(v.boolean()),
       })
     ),

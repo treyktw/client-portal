@@ -11,7 +11,7 @@ const isPublicRoute = createRouteMatcher([
 
 // Define admin-only routes
 const isAdminRoute = createRouteMatcher([
-  '/dashboard(.*)',
+  '/admin(.*)',
   '/admin(.*)',
 ]);
 

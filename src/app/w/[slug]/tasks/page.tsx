@@ -50,13 +50,15 @@ const TaskCard = memo(function TaskCard({
   index, 
   getPriorityColor,
   onEdit,
-  onDelete
+  onDelete,
+  isMobile = false
 }: { 
   task: Task; 
   index: number; 
   getPriorityColor: (priority: string) => string;
   onEdit: (task: Task) => void;
   onDelete: (taskId: string) => void;
+  isMobile?: boolean;
 }) {
   return (
     <Draggable key={task._id} draggableId={task._id} index={index}>
@@ -67,7 +69,7 @@ const TaskCard = memo(function TaskCard({
           style={provided.draggableProps.style}
         >
           <Card 
-            className={`p-3 bg-card transition-shadow ${
+            className={`${isMobile ? 'p-2' : 'p-3'} bg-card transition-shadow ${
               snapshot.isDragging 
                 ? "shadow-lg ring-2 ring-primary/20" 
                 : "hover:shadow-md"
@@ -77,12 +79,12 @@ const TaskCard = memo(function TaskCard({
               <div className="flex items-start gap-2">
                 <div
                   {...provided.dragHandleProps}
-                  className="mt-1 cursor-grab hover:text-primary"
+                  className={`${isMobile ? 'mt-0.5' : 'mt-1'} cursor-grab hover:text-primary touch-manipulation`}
                 >
-                  <GripVertical className="w-4 h-4" />
+                  <GripVertical className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
                 </div>
-                <div className="flex-1">
-                  <h4 className="font-medium line-clamp-2">
+                <div className="flex-1 min-w-0">
+                  <h4 className={`${isMobile ? 'text-sm' : ''} font-medium line-clamp-2`}>
                     {task.title}
                   </h4>
                 </div>
@@ -91,10 +93,10 @@ const TaskCard = memo(function TaskCard({
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className="h-6 w-6"
+                      className={`${isMobile ? 'h-8 w-8' : 'h-6 w-6'} touch-manipulation`}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <MoreVertical className="w-3 h-3" />
+                      <MoreVertical className={`${isMobile ? 'w-4 h-4' : 'w-3 h-3'}`} />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
@@ -113,21 +115,21 @@ const TaskCard = memo(function TaskCard({
                 </DropdownMenu>
               </div>
               {task.description && (
-                <p className="text-sm text-muted-foreground line-clamp-2 ml-6">
+                <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground line-clamp-2 ${isMobile ? 'ml-5' : 'ml-6'}`}>
                   {task.description}
                 </p>
               )}
-              <div className="flex items-center gap-2 ml-6">
+              <div className={`flex items-center gap-2 ${isMobile ? 'ml-5' : 'ml-6'} ${isMobile ? 'flex-wrap' : ''}`}>
                 <Badge 
                   variant={getPriorityColor(task.priority) as "destructive" | "default" | "secondary" | "outline"}
-                  className="gap-1"
+                  className={`gap-1 ${isMobile ? 'text-xs' : ''}`}
                 >
-                  {task.priority === "urgent" && <Flag className="w-3 h-3" />}
+                  {task.priority === "urgent" && <Flag className={`${isMobile ? 'w-2 h-2' : 'w-3 h-3'}`} />}
                   {task.priority}
                 </Badge>
                 {task.dueDate && (
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Calendar className="w-3 h-3" />
+                  <div className={`flex items-center gap-1 ${isMobile ? 'text-xs' : 'text-xs'} text-muted-foreground`}>
+                    <Calendar className={`${isMobile ? 'w-2 h-2' : 'w-3 h-3'}`} />
                     {new Date(task.dueDate).toLocaleDateString()}
                   </div>
                 )}
@@ -169,6 +171,7 @@ export default function TasksPage() {
   const isDraggingRef = useRef(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   const handleEditTask = useCallback((task: Task) => {
     setEditingTask(task);
@@ -220,6 +223,17 @@ export default function TasksPage() {
       taskId,
       data: {}
     });
+  }, []);
+
+  // Mobile detection
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
   // Initialize sync engine
@@ -376,34 +390,34 @@ export default function TasksPage() {
   }
 
   return (
-    <div className="h-[calc(100vh-8rem)] overflow-x-auto overflow-y-hidden flex flex-col items-center">
+    <div className="h-[calc(100vh-8rem)] overflow-hidden flex flex-col">
       {/* Sync Status Indicator */}
       <div className="absolute top-4 right-4 z-10">
         {syncStatus.pendingOperations > 0 ? (
           <Badge variant="secondary" className="gap-2">
             <RefreshCw className="w-3 h-3 animate-spin" />
-            Syncing ({syncStatus.pendingOperations})
+            {isMobile ? `(${syncStatus.pendingOperations})` : `Syncing (${syncStatus.pendingOperations})`}
           </Badge>
         ) : (
           <Badge variant="secondary" className="gap-2">
             <Cloud className="w-3 h-3" />
-            Synced
+            {isMobile ? "" : "Synced"}
           </Badge>
         )}
       </div>
       
-      <div className="p-6 h-full">
+      <div className={`${isMobile ? 'p-2' : 'p-6'} h-full flex-1 overflow-hidden`}>
         <DragDropContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-          <div className="flex gap-6 h-full">
+          <div className={`flex ${isMobile ? 'gap-3 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent' : 'gap-6'} h-full`}>
             {columns.map((column) => {
               const columnTasks = tasks[column.id as keyof typeof tasks] || [];
               
               return (
-                <div key={column.id} className="w-80 flex flex-col h-full">
-                  <div className={`p-3 rounded-t-lg ${column.color} flex-shrink-0`}>
+                <div key={column.id} className={`${isMobile ? 'w-72 flex-shrink-0' : 'w-80'} flex flex-col h-full`}>
+                  <div className={`${isMobile ? 'p-2' : 'p-3'} rounded-t-lg ${column.color} flex-shrink-0`}>
                     <div className="flex items-center justify-between">
-                      <h3 className="font-semibold">{column.title}</h3>
-                      <Badge variant="secondary">
+                      <h3 className={`${isMobile ? 'text-sm' : ''} font-semibold`}>{column.title}</h3>
+                      <Badge variant="secondary" className={isMobile ? 'text-xs' : ''}>
                         {columnTasks.length}
                       </Badge>
                     </div>
@@ -428,6 +442,7 @@ export default function TasksPage() {
                               getPriorityColor={getPriorityColor}
                               onEdit={handleEditTask}
                               onDelete={handleDeleteTask}
+                              isMobile={isMobile}
                             />
                           ))}
                           {provided.placeholder}
@@ -456,12 +471,14 @@ export default function TasksPage() {
                               }
                             }}
                             autoFocus
+                            className={isMobile ? 'text-sm' : ''}
                           />
-                          <div className="flex gap-2 mt-2">
+                          <div className={`flex gap-2 mt-2 ${isMobile ? 'flex-col' : ''}`}>
                             <Button 
                               size="sm" 
                               onClick={() => handleCreateTask(column.id)}
                               disabled={!newTaskTitle.trim()}
+                              className={isMobile ? 'w-full' : ''}
                             >
                               Add
                             </Button>
@@ -472,6 +489,7 @@ export default function TasksPage() {
                                 setIsAddingTask(null);
                                 setNewTaskTitle("");
                               }}
+                              className={isMobile ? 'w-full' : ''}
                             >
                               Cancel
                             </Button>

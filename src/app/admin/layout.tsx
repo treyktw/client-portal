@@ -4,7 +4,7 @@
 import { useMemo, useReducer, useCallback } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import AdminSidebar from "@/components/dashboard/admin-sidebar";
+import AdminSidebar from "@/components/admin/admin-sidebar";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/providers/theme-provider";
 

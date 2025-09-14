@@ -22,8 +22,8 @@ import {
   Plus,
 } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
-import CreateWorkspaceModal from "@/components/dashboard/CreateWorkspaceModal";
-import WorkspacesTable from "@/components/dashboard/WorkspaceTable";
+import CreateWorkspaceModal from "@/components/admin/CreateWorkspaceModal";
+import WorkspacesTable from "@/components/admin/WorkspaceTable";
 import type { WorkspaceWithClient, DashboardStats } from "@/types/admin";
 
 type ModalState = {

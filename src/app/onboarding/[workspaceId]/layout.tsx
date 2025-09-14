@@ -35,7 +35,7 @@ export default function OnboardingLayout({
     }
 
     if (workspace === null) {
-      router.push("/dashboard");
+      router.push("/admin");
       return;
     }
 

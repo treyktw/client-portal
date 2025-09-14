@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { trpc } from "@/lib/trpc-client";
@@ -62,6 +62,7 @@ export default function BusinessInfoPage() {
   const workspaceId = params.workspaceId as string;
   
   const updateStep = useMutation(api.workspaces.updateOnboardingStep);
+  const currentUser = useQuery(api.users.getCurrentUser);
   
   // tRPC mutations
   const validateEmailMutation = trpc.validation.validateEmail.useMutation();
@@ -100,6 +101,13 @@ export default function BusinessInfoPage() {
   const [isValidating, setIsValidating] = useState(false);
   const debouncedEmail = useDebounce(formData.email, 500);
   const debouncedWebsite = useDebounce(formData.website, 1000);
+
+  // Populate email field with current user's email
+  useEffect(() => {
+    if (currentUser?.email && !formData.email) {
+      setFormData(prev => ({ ...prev, email: currentUser.email }));
+    }
+  }, [currentUser?.email, formData.email]);
 
   // Email validation with deliverability check
   const validateEmail = useCallback(async (email: string) => {
@@ -313,6 +321,11 @@ export default function BusinessInfoPage() {
                       placeholder="contact@example.com"
                       className={validation.email.valid ? "" : "border-destructive"}
                     />
+                    {currentUser?.email === formData.email && (
+                      <div className="text-xs mt-1 text-muted-foreground">
+                        Pre-filled from your account
+                      </div>
+                    )}
                     {validation.email.message && (
                       <div className={`text-xs mt-1 flex items-center gap-1 ${
                         validation.email.valid ? "text-green-600" : "text-destructive"

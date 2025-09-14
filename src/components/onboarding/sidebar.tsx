@@ -96,7 +96,7 @@ export default function OnboardingSidebar({
   };
 
   const handleGoBack = () => {
-    router.push("/dashboard");
+    router.push("/admin");
   };
 
   return (

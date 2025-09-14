@@ -1,7 +1,7 @@
 // app/w/[slug]/notes/page.tsx
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -27,6 +27,9 @@ import {
   Trash,
   FileArchive,
   Sparkles,
+  ChevronLeft,
+  ChevronRight,
+  Menu,
 } from "lucide-react";
 import {
   getGeneralNoteTemplate,
@@ -51,7 +54,25 @@ export default function NotesPage() {
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [creatingNote, setCreatingNote] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const hasAutoCreated = useRef(false);
+
+  // Responsive behavior
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      // Auto-collapse sidebar on mobile
+      if (mobile) {
+        setSidebarCollapsed(true);
+      }
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   // Get the selected note from the notes array
   const selectedNote = notes?.find((n) => n._id === selectedNoteId) || null;
@@ -176,129 +197,210 @@ export default function NotesPage() {
 
   return (
     <div className="h-[calc(100vh-8rem)] flex gap-4 p-4">
+      {/* Mobile Menu Button - Only visible on mobile when sidebar is collapsed */}
+      {isMobile && sidebarCollapsed && (
+        <div className="fixed top-20 left-4 z-50">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setSidebarCollapsed(false)}
+            className="h-10 w-10 bg-background shadow-lg"
+          >
+            <Menu className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
+
+      {/* Mobile Overlay - Only visible on mobile when sidebar is expanded */}
+      {isMobile && !sidebarCollapsed && (
+        <button 
+          type="button"
+          className="fixed inset-0 bg-black/50 z-30 cursor-pointer"
+          onClick={() => setSidebarCollapsed(true)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              setSidebarCollapsed(true);
+            }
+          }}
+          aria-label="Close sidebar"
+        />
+      )}
+
       {/* Sidebar */}
-      <div className="w-80 border bg-card rounded-lg flex flex-col">
-        <div className="p-4 border-b">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button className="w-full" disabled={creatingNote}>
-                <Plus className="w-4 h-4 mr-2" />
-                {creatingNote ? "Creating..." : "New Note"}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56">
-              <DropdownMenuItem
-                onClick={handleCreateBlankNote}
-                disabled={creatingNote}
-              >
-                <FileText className="w-4 h-4 mr-2" />
-                Blank Note
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={handleCreateTemplateNote}
-                disabled={creatingNote}
-              >
-                <FileArchive className="w-4 h-4 mr-2" />
-                Project Brief Template
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+      <div className={`${sidebarCollapsed ? 'w-12' : 'w-80'} border bg-card rounded-lg flex flex-col transition-all duration-300 ease-in-out ${
+        isMobile && !sidebarCollapsed ? 'fixed left-4 top-20 z-40 h-[calc(100vh-10rem)]' : ''
+      }`}>
+        {/* Sidebar Header */}
+        <div className="p-2 border-b flex items-center justify-between">
+          {!sidebarCollapsed && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="w-6/7" disabled={creatingNote}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  {creatingNote ? "Creating..." : "New Note"}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56">
+                <DropdownMenuItem
+                  onClick={handleCreateBlankNote}
+                  disabled={creatingNote}
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  Blank Note
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={handleCreateTemplateNote}
+                  disabled={creatingNote}
+                >
+                  <FileArchive className="w-4 h-4 mr-2" />
+                  Project Brief Template
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+          
+          {/* Collapse/Expand Button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="h-8 w-8"
+          >
+            {sidebarCollapsed ? (
+              <ChevronRight className="w-4 h-4" />
+            ) : (
+              <ChevronLeft className="w-4 h-4" />
+            )}
+          </Button>
         </div>
 
-        <div className="p-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search notes..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 border-2 border-gray-300 rounded-md"
-            />
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto">
-          {sortedNotes.length === 0 ? (
-            <div className="p-4 text-center text-muted-foreground">
-              <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">No notes yet</p>
-              <p className="text-xs mt-1">
-                Create your first note to get started
-              </p>
+        {/* Search - Hidden when collapsed */}
+        {!sidebarCollapsed && (
+          <div className="p-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search notes..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 border-2 border-gray-300 rounded-md"
+              />
             </div>
-          ) : (
+          </div>
+        )}
+
+        {/* Notes List */}
+        <div className="flex-1 overflow-y-auto">
+          {sidebarCollapsed ? (
+            // Collapsed view - show only icons
             <div className="p-2 space-y-2">
               {sortedNotes.map((note) => (
-                <Card
+                <Button
                   key={note._id}
-                  className={`p-3 cursor-pointer hover:bg-accent/50 transition-colors mb-2 ${
+                  variant="ghost"
+                  size="icon"
+                  className={`h-10 w-10 ${
                     selectedNoteId === note._id
-                      ? "bg-accent ring-2 ring-primary/20 text-black"
-                      : "text-foreground"
+                      ? "bg-accent ring-2 ring-primary/20"
+                      : ""
                   }`}
                   onClick={() => setSelectedNoteId(note._id)}
+                  title={note.title}
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        {note.title === "Project Brief" ? (
-                          <Sparkles className="w-4 h-4 text-primary" />
-                        ) : (
-                          <FileText className="w-4 h-4 text-muted-foreground" />
-                        )}
-                        <h3 className="font-medium truncate">{note.title}</h3>
-                        {note.isPinned && (
-                          <Pin className="w-3 h-3 text-primary" />
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {new Date(note.updatedAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger
-                        asChild
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handlePinNote(note._id, note.isPinned);
-                          }}
-                        >
-                          <Pin className="w-4 h-4 mr-2" />
-                          {note.isPinned ? "Unpin" : "Pin"}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleArchiveNote(note._id);
-                          }}
-                        >
-                          <Archive className="w-4 h-4 mr-2" />
-                          Archive
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteNote(note._id);
-                          }}
-                          className="text-destructive"
-                        >
-                          <Trash className="w-4 h-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </Card>
+                  {note.title === "Project Brief" ? (
+                    <Sparkles className="w-4 h-4 text-primary" />
+                  ) : (
+                    <FileText className="w-4 h-4 text-muted-foreground" />
+                  )}
+                </Button>
               ))}
+            </div>
+          ) : (
+            // Expanded view - show full note cards
+            <div>
+              {sortedNotes.length === 0 ? (
+                <div className="p-4 text-center text-muted-foreground">
+                  <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No notes yet</p>
+                  <p className="text-xs mt-1">
+                    Create your first note to get started
+                  </p>
+                </div>
+              ) : (
+                <div className="p-2 space-y-2">
+                  {sortedNotes.map((note) => (
+                    <Card
+                      key={note._id}
+                      className={`p-3 cursor-pointer hover:bg-accent/50 transition-colors mb-2 ${
+                        selectedNoteId === note._id
+                          ? "bg-accent ring-2 ring-primary/20 text-black"
+                          : "text-foreground"
+                      }`}
+                      onClick={() => setSelectedNoteId(note._id)}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            {note.title === "Project Brief" ? (
+                              <Sparkles className="w-4 h-4 text-primary" />
+                            ) : (
+                              <FileText className="w-4 h-4 text-muted-foreground" />
+                            )}
+                            <h3 className="font-medium truncate">{note.title}</h3>
+                            {note.isPinned && (
+                              <Pin className="w-3 h-3 text-primary" />
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {new Date(note.updatedAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger
+                            asChild
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handlePinNote(note._id, note.isPinned);
+                              }}
+                            >
+                              <Pin className="w-4 h-4 mr-2" />
+                              {note.isPinned ? "Unpin" : "Pin"}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleArchiveNote(note._id);
+                              }}
+                            >
+                              <Archive className="w-4 h-4 mr-2" />
+                              Archive
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteNote(note._id);
+                              }}
+                              className="text-destructive"
+                            >
+                              <Trash className="w-4 h-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -1,4 +1,4 @@
-// components/dashboard/CreateWorkspaceModal.tsx - Updated version
+// components/admin/CreateWorkspaceModal.tsx - Updated version
 "use client";
 
 import { useState } from "react";
@@ -181,7 +181,7 @@ export default function CreateWorkspaceModal({ open, onClose }: CreateWorkspaceM
 
       // Navigate after a short delay
       setTimeout(() => {
-        router.push(`/dashboard`);
+        router.push(`/admin`);
         handleClose();
       }, 2000);
 

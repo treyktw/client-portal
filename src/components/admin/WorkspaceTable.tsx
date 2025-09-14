@@ -38,7 +38,7 @@ import {
   Search,
 } from "lucide-react";
 import { toast } from "sonner";
-import WorkspaceSettingsModal from "@/components/dashboard/WorkspaceSettingsModal";
+import WorkspaceSettingsModal from "@/components/admin/WorkspaceSettingsModal";
 import type {
   WorkspaceWithClient,
   WorkspaceFilters,

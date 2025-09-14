@@ -44,7 +44,7 @@ export default function Home() {
     // Admin users go directly to dashboard
     if (currentUser?.role === "admin") {
       hasRedirected.current = true;
-      router.push("/dashboard");
+      router.push("/admin");
       return;
     }
 

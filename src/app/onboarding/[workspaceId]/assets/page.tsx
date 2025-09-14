@@ -23,6 +23,7 @@ export default function AssetsPage() {
   const updateStep = useMutation(api.workspaces.updateOnboardingStep);
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
   const saveFile = useMutation(api.files.saveFile);
+  const getOrCreateOnboardingFolder = useMutation(api.folders.getOrCreateOnboardingFolder);
   const currentUser = useQuery(api.users.getCurrentUser);
   
   const [uploadLater, setUploadLater] = useState(false);
@@ -65,6 +66,11 @@ export default function AssetsPage() {
     
     const { storageId } = await result.json();
     
+    // Get or create onboarding folder
+    const onboardingFolderId = await getOrCreateOnboardingFolder({
+      workspaceId: workspaceId as Id<"workspaces">,
+    });
+    
     const fileData = await saveFile({
       storageId,
       workspaceId: workspaceId as Id<"workspaces">,
@@ -72,6 +78,7 @@ export default function AssetsPage() {
       mimeType: file.type,
       size: file.size,
       fileType,
+      folderId: onboardingFolderId,
     });
     
     return fileData;
