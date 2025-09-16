@@ -8,6 +8,7 @@ import ConvexClientProvider from "@/providers/ConvexClientProvider";
 import TRPCProvider from "@/providers/TRPCProvider";
 import { NavigationProgress } from "@/components/NavigationProgress";
 import MobileCheck from "@/components/MobileCheck";
+import { Toaster } from "@/components/ui/sonner";
 
 const firaCode = Fira_Code({
   variable: "--font-fira-code",
@@ -58,6 +59,7 @@ export default function RootLayout({
               <NavigationProgress />
               <MobileCheck>
                 {children}
+                <Toaster />
               </MobileCheck>
             </ConvexClientProvider>
           </TRPCProvider>

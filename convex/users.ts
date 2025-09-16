@@ -43,12 +43,12 @@ export const debugAllUsers = query({
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      console.log("No identity for debugAllUsers");
+      // console.log("No identity for debugAllUsers");
       return [];
     }
 
     const allUsers = await ctx.db.query("users").collect();
-    console.log("All users in database:", allUsers.map(u => ({ id: u._id, clerkId: u.clerkId, email: u.email, role: u.role })));
+    // console.log("All users in database:", allUsers.map(u => ({ id: u._id, clerkId: u.clerkId, email: u.email, role: u.role })));
     
     return allUsers.map(u => ({ 
       id: u._id, 
@@ -268,7 +268,7 @@ export const syncClerkMetadata = action({
           results.errors.push(`User ${user.email}: ${response.status} - ${errorText}`);
         } else {
           results.synced++;
-          console.log(`Successfully synced user ${user.email}`);
+          // console.log(`Successfully synced user ${user.email}`);
           
           // Update the user record to track sync
           await ctx.runMutation(api.users.updateSyncStatus, {
@@ -283,7 +283,7 @@ export const syncClerkMetadata = action({
       }
     }
 
-    console.log(`Clerk metadata sync completed: ${results.synced} synced, ${results.failed} failed`);
+    // console.log(`Clerk metadata sync completed: ${results.synced} synced, ${results.failed} failed`);
     if (results.errors.length > 0) {
       console.log("Errors:", results.errors);
     }
@@ -410,7 +410,7 @@ export const deleteUser = mutation({
     const userToDelete = await ctx.db.get(args.userId);
     if (!userToDelete) throw new Error("User to delete not found");
 
-    console.log(`Starting deletion of user ${userToDelete.email}`);
+    // console.log(`Starting deletion of user ${userToDelete.email}`);
 
     // Find all workspaces owned by this user
     const ownedWorkspaces = await ctx.db
@@ -420,7 +420,7 @@ export const deleteUser = mutation({
 
     // Delete each workspace and its data
     for (const workspace of ownedWorkspaces) {
-      console.log(`Deleting workspace ${workspace.name} owned by user`);
+      // console.log(`Deleting workspace ${workspace.name} owned by user`);
       
       // Delete all workspace data
       const [notes, archivedNotes, tasks, canvases, files, folders, activities] = await Promise.all([
@@ -498,7 +498,7 @@ export const deleteUser = mutation({
     // Finally, delete the user
     await ctx.db.delete(args.userId);
 
-    console.log(`Successfully deleted user ${userToDelete.email} and all associated data`);
+    // console.log(`Successfully deleted user ${userToDelete.email} and all associated data`);
     
     return { 
       success: true, 

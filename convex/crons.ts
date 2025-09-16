@@ -14,7 +14,7 @@ crons.daily(
 // Sync Clerk metadata every 6 hours
 crons.interval(
   "sync clerk metadata",
-  { hours: 1 },
+  { hours: 10 },
   api.users.syncClerkMetadata
 );
 

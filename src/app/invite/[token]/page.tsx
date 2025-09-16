@@ -42,8 +42,6 @@ export default function InvitePage({
     inviteToken: token,
   });
 
-  console.log(user?.emailAddresses[0]?.emailAddress);
-
   useEffect(() => {
     if (!isLoaded) return;
     

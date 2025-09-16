@@ -94,12 +94,12 @@ export default function FilesPage() {
 
   // Queries
   const workspace = useQuery(api.workspaces.getWorkspaceBySlug, { slug });
-  const files = useQuery(api.files.getWorkspaceFiles, {
-    workspaceId: workspace?._id as Id<"workspaces">,
-  });
-  const folders = useQuery(api.folders.getFolders, {
-    workspaceId: workspace?._id as Id<"workspaces">,
-  });
+  const files = useQuery(api.files.getWorkspaceFiles, 
+    workspace?._id ? { workspaceId: workspace._id } : "skip"
+  );
+  const folders = useQuery(api.folders.getFolders, 
+    workspace?._id ? { workspaceId: workspace._id } : "skip"
+  );
 
   // Mutations
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);

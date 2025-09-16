@@ -55,6 +55,7 @@
     "@trpc/next": "^11.5.1",
     "@trpc/react-query": "^11.5.1",
     "@trpc/server": "^11.5.1",
+    "@types/twilio": "^3.19.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -75,6 +76,7 @@
     "react-dropzone": "^14.3.8",
     "react-hook-form": "^7.62.0",
     "react-resizable-panels": "^3.0.5",
+    "reactflow": "^11.11.4",
     "recharts": "2.15.4",
     "require-in-the-middle": "^7.5.2",
     "resend": "^6.0.3",
@@ -82,6 +84,7 @@
     "stripe": "^18.5.0",
     "swapy": "^1.0.5",
     "tailwind-merge": "^3.3.1",
+    "twilio": "^5.9.0",
     "vaul": "^1.1.2",
     "zod": "^4.1.5"
   },

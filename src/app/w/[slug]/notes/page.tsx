@@ -42,10 +42,12 @@ export default function NotesPage() {
   const slug = params.slug as string;
 
   const workspace = useQuery(api.workspaces.getWorkspaceBySlug, { slug });
-  const notes = useQuery(api.notes.getNotes, {
-    workspaceId: workspace?._id as Id<"workspaces">,
-    includeArchived: false,
-  });
+  const notes = useQuery(api.notes.getNotes, 
+    workspace?._id ? { 
+      workspaceId: workspace._id,
+      includeArchived: false,
+    } : "skip"
+  );
 
   const createNote = useMutation(api.notes.createNote);
   const updateNote = useMutation(api.notes.updateNote);

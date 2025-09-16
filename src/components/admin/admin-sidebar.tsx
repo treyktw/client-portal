@@ -28,6 +28,8 @@ import {
   LogOut,
   Sun,
   Moon,
+  Users,
+  Target,
 } from "lucide-react";
 import { useTheme } from "@/providers/theme-provider";
 import type { NavItem } from "@/types/admin";
@@ -119,6 +121,18 @@ export default function AdminSidebar({ unreadCount = 0, mentionCount = 0, onTogg
       label: "Payments",
       href: "/admin/payments",
       icon: CreditCard,
+    },
+    {
+      id: "crm",
+      label: "CRM",
+      href: "/admin/crm",
+      icon: Users,
+    },
+    {
+      id: "milestones",
+      label: "Milestones",
+      href: "/admin/milestones",
+      icon: Target,
     },
   ];
 

@@ -15,7 +15,7 @@ export default defineSchema({
     updatedAt: v.number(),
     isProvisional: v.optional(v.boolean()), // True for invited but not accepted users
     provisionalExpiresAt: v.optional(v.number()), // Timestamp when provisional user expires
-    lastClerkSync: v.optional(v.number()), 
+    lastClerkSync: v.optional(v.number()),
     deletedAt: v.optional(v.number()),
   })
     .index("by_clerk_id", ["clerkId"])
@@ -230,117 +230,365 @@ export default defineSchema({
     .index("by_workspace", ["workspaceId", "createdAt"])
     .index("by_user", ["userId"]),
 
-    //Notifications
-    notifications: defineTable({
-      workspaceId: v.id("workspaces"),
-      type: v.string(),
-      subject: v.string(),
-      recipient: v.string(),
-      status: v.string(),
-      sentAt: v.number(),
-    }),
+  //Notifications
+  notifications: defineTable({
+    workspaceId: v.id("workspaces"),
+    type: v.string(),
+    subject: v.string(),
+    recipient: v.string(),
+    status: v.string(),
+    sentAt: v.number(),
+  }),
 
-    payments: defineTable({
-      workspaceId: v.id("workspaces"),
-      serviceName: v.string(),
-      serviceDescription: v.string(),
-      amount: v.number(), // in cents
-      currency: v.string(), // USD, EUR, etc
-      stripeLink: v.string(), // The Stripe payment link URL
-      invoiceNumber: v.string(), // Simple invoice number
-      status: v.string(), // pending, paid
-      createdAt: v.number(),
-      deliveryTime: v.optional(v.string()),
-    })
-      .index("by_workspace", ["workspaceId"])
-      .index("by_status", ["status"]),
-    
-    coupons: defineTable({
-      code: v.string(),
-      description: v.string(),
-      stripeCouponId: v.optional(v.string()), // If you want to track Stripe coupon ID
-      isActive: v.boolean(),
-      createdAt: v.number(),
-    })
-      .index("by_code", ["code"]),
-    
-    services: defineTable({
-      name: v.string(),
-      description: v.string(),
-      stripePriceId: v.optional(v.string()), // Stripe price ID if needed
-      createdAt: v.number(),
-    }),
+  payments: defineTable({
+    workspaceId: v.id("workspaces"),
+    serviceName: v.string(),
+    serviceDescription: v.string(),
+    amount: v.number(), // in cents
+    currency: v.string(), // USD, EUR, etc
+    stripeLink: v.string(), // The Stripe payment link URL
+    invoiceNumber: v.string(), // Simple invoice number
+    status: v.string(), // pending, paid
+    createdAt: v.number(),
+    deliveryTime: v.optional(v.string()),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_status", ["status"]),
 
-    threads: defineTable({
+  coupons: defineTable({
+    code: v.string(),
+    description: v.string(),
+    stripeCouponId: v.optional(v.string()), // If you want to track Stripe coupon ID
+    isActive: v.boolean(),
+    createdAt: v.number(),
+  }).index("by_code", ["code"]),
+
+  services: defineTable({
+    name: v.string(),
+    description: v.string(),
+    stripePriceId: v.optional(v.string()), // Stripe price ID if needed
+    createdAt: v.number(),
+  }),
+
+  threads: defineTable({
+    workspaceId: v.id("workspaces"),
+    title: v.string(),
+    createdBy: v.id("users"),
+    isDefault: v.boolean(), // true for "Project Chat"
+    lastMessageAt: v.optional(v.number()),
+    lastMessagePreview: v.optional(v.string()),
+    lastMessageAuthor: v.optional(v.id("users")),
+    pinnedMessageIds: v.optional(v.array(v.string())), // Store as strings to avoid circular dependency
+    memberIds: v.array(v.id("users")), // Thread participants
+    isArchived: v.optional(v.boolean()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_workspace_updated", ["workspaceId", "lastMessageAt"])
+    .index("by_workspace_archived", ["workspaceId", "isArchived"]),
+
+  // Messages table
+  messages: defineTable({
+    threadId: v.id("threads"),
+    workspaceId: v.id("workspaces"),
+    authorId: v.id("users"),
+    body: v.string(),
+    originalBody: v.optional(v.string()),
+    files: v.optional(v.array(v.id("files"))),
+    links: v.optional(
+      v.array(
+        v.object({
+          url: v.string(),
+          title: v.optional(v.string()),
+          favicon: v.optional(v.string()),
+        })
+      )
+    ),
+    mentions: v.optional(v.array(v.id("users"))),
+    reactions: v.optional(
+      v.array(
+        v.object({
+          emoji: v.string(),
+          userId: v.id("users"),
+          createdAt: v.number(),
+        })
+      )
+    ),
+    replyToId: v.optional(v.id("messages")), // For threading
+    editedAt: v.optional(v.number()),
+    editedBy: v.optional(v.id("users")),
+    deletedAt: v.optional(v.number()),
+    deletedBy: v.optional(v.id("users")),
+    isPinned: v.optional(v.boolean()),
+    createdAt: v.number(),
+  })
+    .index("by_thread", ["threadId", "createdAt"])
+    .index("by_workspace", ["workspaceId", "createdAt"])
+    .index("by_author", ["authorId"])
+    .index("by_thread_pinned", ["threadId", "isPinned"])
+    .index("by_deleted", ["deletedAt"]),
+
+  // Message read tracking
+  messageReads: defineTable({
+    messageId: v.id("messages"),
+    userId: v.id("users"),
+    threadId: v.id("threads"),
+    workspaceId: v.id("workspaces"),
+    readAt: v.number(),
+  })
+    .index("by_user_thread", ["userId", "threadId"])
+    .index("by_thread_message", ["threadId", "messageId"])
+    .index("by_user_workspace", ["userId", "workspaceId"]),
+
+  // Typing indicators (ephemeral)
+  typingIndicators: defineTable({
+    threadId: v.id("threads"),
+    userId: v.id("users"),
+    startedAt: v.number(),
+    expiresAt: v.number(), // Auto-expire after 5 seconds
+  })
+    .index("by_thread", ["threadId"])
+    .index("by_expires", ["expiresAt"]),
+
+  contacts: defineTable({
+    status: v.union(
+      v.literal("lead"),
+      v.literal("qualified"),
+      v.literal("proposal"),
+      v.literal("won"),
+      v.literal("lost")
+    ),
+    type: v.union(
+      v.literal("dental"),
+      v.literal("detailing"),
+      v.literal("trucking"),
+      v.literal("automotive"),
+      v.literal("other")
+    ),
+    source: v.union(
+      v.literal("cold_call"),
+      v.literal("walk_in"),
+      v.literal("referral"),
+      v.literal("webform"),
+      v.literal("import")
+    ),
+    businessName: v.string(),
+    ownerName: v.optional(v.string()),
+    emails: v.array(
+      v.object({
+        label: v.optional(v.union(v.literal("work"), v.literal("personal"))),
+        address: v.string(),
+        verified: v.optional(v.boolean()),
+        emailConsent: v.optional(
+          v.union(
+            v.literal("opted_in"),
+            v.literal("opted_out"),
+            v.literal("unknown")
+          )
+        ),
+        lastConsentAt: v.optional(v.number()),
+      })
+    ),
+    phones: v.array(
+      v.object({
+        label: v.optional(v.union(v.literal("main"), v.literal("mobile"))),
+        number: v.string(),
+        verified: v.optional(v.boolean()),
+        smsConsent: v.optional(
+          v.union(
+            v.literal("opted_in"),
+            v.literal("opted_out"),
+            v.literal("unknown")
+          )
+        ),
+        lastConsentAt: v.optional(v.number()),
+      })
+    ),
+    website: v.optional(v.string()),
+    location: v.optional(
+      v.object({
+        line1: v.optional(v.string()),
+        city: v.optional(v.string()),
+        state: v.optional(v.string()),
+        zip: v.optional(v.string()),
+        country: v.optional(v.string()),
+        lat: v.optional(v.number()),
+        lng: v.optional(v.number()),
+      })
+    ),
+    tags: v.array(v.string()),
+    notes: v.optional(v.string()),
+    assignedTo: v.optional(v.id("users")),
+    workspaceId: v.optional(v.id("workspaces")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_status", ["status"])
+    .index("by_type", ["type"])
+    .index("by_assigned", ["assignedTo"])
+    .index("by_workspace", ["workspaceId"]),
+
+  interactions: defineTable({
+    contactId: v.id("contacts"),
+    type: v.union(
+      v.literal("call"),
+      v.literal("sms"),
+      v.literal("email"),
+      v.literal("note"),
+      v.literal("meeting"),
+      v.literal("status_change"),
+      v.literal("task")
+    ),
+    direction: v.optional(v.union(v.literal("outbound"), v.literal("inbound"))),
+    subject: v.optional(v.string()),
+    body: v.optional(v.string()),
+    attachments: v.optional(v.array(v.id("files"))),
+    metadata: v.optional(v.any()),
+    twilioMessageSid: v.optional(v.string()), // For tracking Twilio messages
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("by_contact", ["contactId", "createdAt"])
+    .index("by_type", ["type"])
+    .index("by_twilio_sid", ["twilioMessageSid"]),
+
+  consents: defineTable({
+    contactId: v.id("contacts"),
+    channel: v.union(v.literal("sms"), v.literal("email")),
+    action: v.union(v.literal("opt_in"), v.literal("opt_out")),
+    source: v.union(
+      v.literal("sms_reply"),
+      v.literal("link_click"),
+      v.literal("manual"),
+      v.literal("import")
+    ),
+    value: v.string(), // phone or email
+    ip: v.optional(v.string()),
+    userAgent: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_contact_channel", ["contactId", "channel"])
+    .index("by_value", ["value"]),
+
+  messageTemplates: defineTable({
+    channel: v.union(v.literal("sms"), v.literal("email")),
+    name: v.string(),
+    subject: v.optional(v.string()),
+    body: v.string(),
+    variables: v.array(v.string()),
+    category: v.union(
+      v.literal("outreach"),
+      v.literal("followup"),
+      v.literal("payment"),
+      v.literal("milestone"),
+      v.literal("task"),
+      v.literal("system")
+    ),
+    isActive: v.boolean(),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_channel", ["channel"])
+    .index("by_category", ["category"])
+    .index("by_active", ["isActive"]),
+
+  // Enhanced notifications table
+  notificationConfigs: defineTable({
+    userId: v.id("users"),
+    channel: v.union(v.literal("inapp"), v.literal("email"), v.literal("sms")),
+    enabled: v.boolean(),
+    categories: v.array(v.string()), // which notification types to receive
+    quietHours: v.optional(
+      v.object({
+        enabled: v.boolean(),
+        startHour: v.number(), // 0-23
+        endHour: v.number(),
+        timezone: v.string(),
+      })
+    ),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
+
+  // Update existing notifications table - add these fields
+  notificationLogs: defineTable({
+    contactId: v.optional(v.id("contacts")),
+    workspaceId: v.optional(v.id("workspaces")),
+    userId: v.optional(v.id("users")),
+    type: v.string(), // lead_created, no_followup, milestone_risk, etc.
+    channel: v.union(v.literal("inapp"), v.literal("email"), v.literal("sms")),
+    subject: v.optional(v.string()),
+    body: v.string(),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("sent"),
+      v.literal("failed"),
+      v.literal("read")
+    ),
+    metadata: v.optional(v.any()), // Additional data like twilioSid, resendId
+    error: v.optional(v.string()),
+    sentAt: v.optional(v.number()),
+    readAt: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("by_contact", ["contactId"])
+    .index("by_workspace", ["workspaceId"])
+    .index("by_user", ["userId"])
+    .index("by_status", ["status"])
+    .index("by_created", ["createdAt"]),
+
+    milestones: defineTable({
       workspaceId: v.id("workspaces"),
+      phase: v.string(),
       title: v.string(),
+      description: v.string(), // BlockNote JSON
+      position: v.object({
+        x: v.number(),
+        y: v.number(),
+      }),
+      status: v.union(
+        v.literal("pending"),
+        v.literal("in_progress"),
+        v.literal("completed"),
+        v.literal("blocked")
+      ),
+      dueDate: v.optional(v.number()),
+      completedAt: v.optional(v.number()),
+      completedBy: v.optional(v.id("users")),
+      completionNotes: v.optional(v.string()),
+      paymentAmount: v.optional(v.number()),
+      paymentPercentage: v.optional(v.number()),
+      paymentStatus: v.optional(v.union(
+        v.literal("pending"),
+        v.literal("paid"),
+        v.literal("overdue")
+      )),
+      dependencies: v.optional(v.array(v.id("milestones"))),
+      order: v.number(),
       createdBy: v.id("users"),
-      isDefault: v.boolean(), // true for "Project Chat"
-      lastMessageAt: v.optional(v.number()),
-      lastMessagePreview: v.optional(v.string()),
-      lastMessageAuthor: v.optional(v.id("users")),
-      pinnedMessageIds: v.optional(v.array(v.string())), // Store as strings to avoid circular dependency
-      memberIds: v.array(v.id("users")), // Thread participants
-      isArchived: v.optional(v.boolean()),
       createdAt: v.number(),
       updatedAt: v.number(),
     })
       .index("by_workspace", ["workspaceId"])
-      .index("by_workspace_updated", ["workspaceId", "lastMessageAt"])
-      .index("by_workspace_archived", ["workspaceId", "isArchived"]),
+      .index("by_status", ["status"])
+      .index("by_due_date", ["dueDate"]),
   
-    // Messages table
-    messages: defineTable({
-      threadId: v.id("threads"),
-      workspaceId: v.id("workspaces"),
-      authorId: v.id("users"),
-      body: v.string(), 
-  originalBody: v.optional(v.string()),
-      files: v.optional(v.array(v.id("files"))),
-      links: v.optional(v.array(v.object({
-        url: v.string(),
-        title: v.optional(v.string()),
-        favicon: v.optional(v.string()),
-      }))),
-      mentions: v.optional(v.array(v.id("users"))),
-      reactions: v.optional(v.array(v.object({
-        emoji: v.string(),
-        userId: v.id("users"),
-        createdAt: v.number(),
-      }))),
-      replyToId: v.optional(v.id("messages")), // For threading
-      editedAt: v.optional(v.number()),
-      editedBy: v.optional(v.id("users")),
-      deletedAt: v.optional(v.number()),
-      deletedBy: v.optional(v.id("users")),
-      isPinned: v.optional(v.boolean()),
+    milestoneTemplates: defineTable({
+      name: v.string(),
+      description: v.string(),
+      phases: v.array(v.object({
+        name: v.string(),
+        milestones: v.array(v.object({
+          title: v.string(),
+          description: v.string(),
+          defaultDuration: v.optional(v.number()), // days
+          paymentPercentage: v.optional(v.number()),
+        })),
+      })),
+      createdBy: v.id("users"),
       createdAt: v.number(),
+      updatedAt: v.number(),
     })
-      .index("by_thread", ["threadId", "createdAt"])
-      .index("by_workspace", ["workspaceId", "createdAt"])
-      .index("by_author", ["authorId"])
-      .index("by_thread_pinned", ["threadId", "isPinned"])
-      .index("by_deleted", ["deletedAt"]),
-  
-    // Message read tracking
-    messageReads: defineTable({
-      messageId: v.id("messages"),
-      userId: v.id("users"),
-      threadId: v.id("threads"),
-      workspaceId: v.id("workspaces"),
-      readAt: v.number(),
-    })
-      .index("by_user_thread", ["userId", "threadId"])
-      .index("by_thread_message", ["threadId", "messageId"])
-      .index("by_user_workspace", ["userId", "workspaceId"]),
-  
-    // Typing indicators (ephemeral)
-    typingIndicators: defineTable({
-      threadId: v.id("threads"),
-      userId: v.id("users"),
-      startedAt: v.number(),
-      expiresAt: v.number(), // Auto-expire after 5 seconds
-    })
-      .index("by_thread", ["threadId"])
-      .index("by_expires", ["expiresAt"]),
+      .index("by_name", ["name"]),
 });

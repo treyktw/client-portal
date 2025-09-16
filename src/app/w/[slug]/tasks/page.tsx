@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Plus, MoreVertical, GripVertical, RefreshCw, Cloud, Calendar, Flag, Edit, Trash2 } from "lucide-react";
 import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import { useParams } from "next/navigation";
 import { taskSyncEngine } from "@/lib/taskSyncEngine";
@@ -147,9 +146,9 @@ export default function TasksPage() {
   const slug = params.slug as string;
   
   const workspace = useQuery(api.workspaces.getWorkspaceBySlug, { slug });
-  const serverTasks = useQuery(api.tasks.getTasks, {
-    workspaceId: workspace?._id as Id<"workspaces">,
-  });
+  const serverTasks = useQuery(api.tasks.getTasks, 
+    workspace?._id ? { workspaceId: workspace._id } : "skip"
+  );
   
   const createTask = useMutation(api.tasks.createTask);
   const reorderTasks = useMutation(api.tasks.reorderTasks);

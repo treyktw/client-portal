@@ -65,9 +65,9 @@ export default function CanvasPage() {
   const slug = params.slug as string;
   
   const workspace = useQuery(api.workspaces.getWorkspaceBySlug, { slug });
-  const canvases = useQuery(api.canvases.getCanvases, {
-    workspaceId: workspace?._id as Id<"workspaces">,
-  });
+  const canvases = useQuery(api.canvases.getCanvases, 
+    workspace?._id ? { workspaceId: workspace._id } : "skip"
+  );
   
   const createCanvas = useMutation(api.canvases.createCanvas);
   const updateCanvas = useMutation(api.canvases.updateCanvas);
@@ -189,7 +189,7 @@ export default function CanvasPage() {
       
       // Retry logic
       if (retryCount < maxRetries) {
-        console.log(`Retrying save... Attempt ${retryCount + 1}/${maxRetries}`);
+        // console.log(`Retrying save... Attempt ${retryCount + 1}/${maxRetries}`);
         saveRetryCountRef.current = retryCount + 1;
         
         // Exponential backoff: 1s, 2s, 4s
