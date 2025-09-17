@@ -348,7 +348,11 @@ export default function CRMPage() {
                     <div>
                       <p className="font-semibold">{contact.businessName}</p>
                       {contact.website && (
-                        <p className="text-xs text-muted-foreground">{contact.website}</p>
+                        <p className="text-xs text-muted-foreground truncate" title={contact.website}>
+                          {contact.website.length > 30 
+                            ? `${contact.website.substring(0, 30)}...` 
+                            : contact.website}
+                        </p>
                       )}
                     </div>
                   </TableCell>
