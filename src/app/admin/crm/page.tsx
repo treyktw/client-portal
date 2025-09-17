@@ -37,6 +37,7 @@ import {
   ArrowRight,
   Filter,
   Building2,
+  SquarePen,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -45,6 +46,7 @@ import QuickOutreachModal from "@/components/crm/QuickOutreachModal";
 import ConsentBadge from "@/components/crm/ConsentBadge";
 import type { ContactFilters, ContactFilterAction, Contact } from "@/types/crm";
 import { cn } from "@/lib/utils";
+import EditContactModal from "@/components/crm/EditContactModal";
 
 const filterReducer = (state: ContactFilters, action: ContactFilterAction): ContactFilters => {
   switch (action.type) {
@@ -83,13 +85,16 @@ const filterReducer = (state: ContactFilters, action: ContactFilterAction): Cont
 interface ModalState {
   createContact: boolean;
   quickOutreach: { open: boolean; contact: Contact | null };
+  editContact: { open: boolean; contact: Contact | null };
 }
 
 type ModalAction =
   | { type: "OPEN_CREATE" }
   | { type: "CLOSE_CREATE" }
   | { type: "OPEN_OUTREACH"; contact: Contact }
-  | { type: "CLOSE_OUTREACH" };
+  | { type: "CLOSE_OUTREACH" }
+  | { type: "OPEN_EDIT"; contact: Contact }
+  | { type: "CLOSE_EDIT" };
 
 const modalReducer = (state: ModalState, action: ModalAction): ModalState => {
   switch (action.type) {
@@ -101,6 +106,10 @@ const modalReducer = (state: ModalState, action: ModalAction): ModalState => {
       return { ...state, quickOutreach: { open: true, contact: action.contact } };
     case "CLOSE_OUTREACH":
       return { ...state, quickOutreach: { open: false, contact: null } };
+    case "OPEN_EDIT":
+      return { ...state, editContact: { open: true, contact: action.contact } };
+    case "CLOSE_EDIT":
+      return { ...state, editContact: { open: false, contact: null } };
     default:
       return state;
   }
@@ -125,6 +134,7 @@ export default function CRMPage() {
   const [modals, modalDispatch] = useReducer(modalReducer, {
     createContact: false,
     quickOutreach: { open: false, contact: null },
+    editContact: { open: false, contact: null },
   });
 
   // Filter contacts
@@ -248,7 +258,7 @@ export default function CRMPage() {
         <Select
           value={filters.status}
           onValueChange={(value) =>
-            filterDispatch({ type: "SET_STATUS", payload: value as any })
+            filterDispatch({ type: "SET_STATUS", payload: value as import("@/types/crm").ContactStatus | "all" })
           }
         >
           <SelectTrigger className="w-[140px]">
@@ -267,7 +277,7 @@ export default function CRMPage() {
         <Select
           value={filters.type}
           onValueChange={(value) =>
-            filterDispatch({ type: "SET_TYPE", payload: value as any })
+            filterDispatch({ type: "SET_TYPE", payload: value as import("@/types/crm").ContactType | "all" })
           }
         >
           <SelectTrigger className="w-[140px]">
@@ -286,7 +296,7 @@ export default function CRMPage() {
         <Select
           value={filters.source}
           onValueChange={(value) =>
-            filterDispatch({ type: "SET_SOURCE", payload: value as any })
+            filterDispatch({ type: "SET_SOURCE", payload: value as import("@/types/crm").ContactSource | "all" })
           }
         >
           <SelectTrigger className="w-[140px]">
@@ -358,14 +368,16 @@ export default function CRMPage() {
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <div>
-                      <p>{contact.ownerName || "—"}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        {contact.emails[0] && (
+                      <p>
+                        {contact.ownerName || contact.emails[0]?.address || contact.phones[0]?.number || "—"}
+                      </p>
+                      {contact.ownerName && (contact.emails[0]?.address || contact.phones[0]?.number) && (
+                        <div className="flex items-center gap-2 mt-1">
                           <span className="text-xs text-muted-foreground">
-                            {contact.emails[0].address}
+                            {contact.emails[0]?.address || contact.phones[0]?.number}
                           </span>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
@@ -432,6 +444,15 @@ export default function CRMPage() {
                         <DropdownMenuItem
                           onClick={(e) => {
                             e.stopPropagation();
+                            modalDispatch({ type: "OPEN_EDIT", contact });
+                          }}
+                        >
+                         <SquarePen className="h-4 w-4 mr-2" />
+                          Edit Contact
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
                             modalDispatch({ type: "OPEN_OUTREACH", contact });
                           }}
                         >
@@ -470,6 +491,14 @@ export default function CRMPage() {
           open={modals.quickOutreach.open}
           contact={modals.quickOutreach.contact}
           onClose={() => modalDispatch({ type: "CLOSE_OUTREACH" })}
+        />
+      )}
+
+      {modals.editContact.contact && (
+        <EditContactModal
+          open={modals.editContact.open}
+          contact={modals.editContact.contact}
+          onClose={() => modalDispatch({ type: "CLOSE_EDIT" })}
         />
       )}
     </div>
