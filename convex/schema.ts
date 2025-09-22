@@ -270,6 +270,64 @@ export default defineSchema({
     createdAt: v.number(),
   }),
 
+  // Emergency logs for SMS/Voice/Email incidents and system alerts
+  emergencyLogs: defineTable({
+    type: v.union(
+      v.literal("sms"),
+      v.literal("voice_call"),
+      v.literal("email"),
+      v.literal("system")
+    ),
+    from: v.string(),
+    message: v.optional(v.string()),
+    messageSid: v.optional(v.string()),
+    callSid: v.optional(v.string()),
+    timestamp: v.number(),
+    status: v.union(
+      v.literal("active"),
+      v.literal("priority"),
+      v.literal("acknowledged"),
+      v.literal("resolved"),
+      v.literal("escalated"),
+      v.literal("completed")
+    ),
+    hasMedia: v.optional(v.boolean()),
+    mediaUrls: v.optional(v.array(v.string())),
+    recordingUrl: v.optional(v.string()),
+    transcription: v.optional(v.string()),
+    // Freeform operator notes and resolution details
+    notes: v.optional(v.string()),
+    resolution: v.optional(v.string()),
+    preventionSteps: v.optional(v.string()),
+    metadata: v.optional(v.any()),
+
+    createdBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    acknowledgedAt: v.optional(v.number()),
+    acknowledgedBy: v.optional(v.id("users")),
+    resolvedAt: v.optional(v.number()),
+    resolvedBy: v.optional(v.id("users")),
+    escalatedAt: v.optional(v.number()),
+    escalatedTo: v.optional(v.id("users")),
+
+    responseTime: v.optional(v.number()),
+    resolutionTime: v.optional(v.number()),
+    priority: v.optional(
+      v.union(
+        v.literal("critical"),
+        v.literal("high"),
+        v.literal("medium"),
+        v.literal("low")
+      )
+    ),
+    tags: v.optional(v.array(v.string())),
+  })
+    .index("by_call_sid", ["callSid"]) 
+    .index("by_message_sid", ["messageSid"]) 
+    .index("by_status", ["status"]) 
+    .index("by_type", ["type"]),
+
   threads: defineTable({
     workspaceId: v.id("workspaces"),
     title: v.string(),

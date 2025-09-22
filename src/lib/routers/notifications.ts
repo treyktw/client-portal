@@ -7,6 +7,8 @@ import { api } from '@/convex/_generated/api';
 import type { Id } from '@/convex/_generated/dataModel';
 import twilio from 'twilio';
 import { Resend } from 'resend';
+import * as Sentry from '@sentry/nextjs';
+import NewMessageEmail from '@/emails/new-message';
 
 // Initialize services
 const twilioClient = twilio(
@@ -38,6 +40,136 @@ async function getAuthenticatedConvex(token?: string) {
 // (removed unused TwilioWebhookBody interface)
 
 export const notificationsRouter = router({
+  // Notify participants on new chat message (email + optional SMS)
+  notifyNewMessage: protectedProcedure
+    .input(z.object({
+      slug: z.string().optional(),
+      workspaceId: z.string(),
+      workspaceName: z.string(),
+      threadId: z.string(),
+      threadName: z.string().optional(),
+      recipientEmails: z.array(z.string()).default([]),
+      clientPhone: z.string().optional(),
+      senderName: z.string().optional(),
+      senderAvatar: z.string().optional(),
+      preview: z.string().optional(),
+      smsTemplate: z.string().optional(),
+      adminName: z.string().optional(),
+      adminPhone: z.string().optional(),
+      adminEmail: z.string().email().optional(),
+      isClientSender: z.boolean().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      try {
+        Sentry.captureMessage('notifications.notifyNewMessage called', {
+          level: 'info',
+          extra: {
+            workspaceId: input.workspaceId,
+            workspaceName: input.workspaceName,
+            threadId: input.threadId,
+            recipientEmailsCount: input.recipientEmails?.length || 0,
+            hasClientPhone: Boolean(input.clientPhone),
+            hasSlug: Boolean(input.slug),
+          },
+        });
+        // Build content
+        const sender = input.senderName || 'Someone';
+        const subject = `New message in ${input.workspaceName}`;
+        const portalUrl = input.slug
+          ? `${process.env.NEXT_PUBLIC_APP_URL || 'https://telera.tech'}/w/${input.slug}/messages`
+          : `${process.env.NEXT_PUBLIC_APP_URL || 'https://telera.tech'}`;
+        const resolvedAdminName = input.adminName || process.env.NEXT_PUBLIC_ADMIN_NAME || 'Telera Team';
+        const resolvedAdminPhone = input.adminPhone || process.env.NEXT_PUBLIC_ADMIN_PHONE || '';
+        // legacy HTML kept for reference; using React template via Resend
+
+        // Email all members (we'll let caller exclude the sender by not passing their email)
+        // Resolve admin defaults
+        const adminName = resolvedAdminName;
+        const adminPhone = resolvedAdminPhone;
+        const adminEmail = input.adminEmail || process.env.NEXT_PUBLIC_ADMIN_EMAIL || '';
+
+        // Build recipient list: if client sent the message, notify admin email
+        let toList = Array.from(new Set(input.recipientEmails));
+        if (input.isClientSender) {
+          toList = adminEmail ? [adminEmail] : toList;
+        }
+
+        if (toList.length > 0) {
+          Sentry.captureMessage('notifications.notifyNewMessage: Resend send start', {
+            level: 'info',
+            extra: { toList, subject },
+          });
+
+          const { data, error } = await resend.emails.send({
+            from: process.env.RESEND_FROM_EMAIL || 'support@telera.tech',
+            to: toList,
+            subject,
+            react: NewMessageEmail({
+              workspaceName: input.workspaceName,
+              senderName: sender,
+              senderAvatar: input.senderAvatar, // optional
+              preview: input.preview,
+              portalUrl,
+              threadName: input.threadName, // optional
+              timestamp: new Date().toLocaleString(), // optional
+              adminName,
+              adminPhone,
+            }) as React.ReactElement,
+          });
+          if (error) {
+            Sentry.captureException(new Error(error.message), {
+              extra: { toList, subject },
+            });
+          } else {
+            Sentry.captureMessage('notifications.notifyNewMessage: Resend send success', {
+              level: 'info',
+              extra: { messageId: data?.id },
+            });
+          }
+        }
+
+        // Optional SMS to client primary phone on workspace
+        // If client sent the message, notify the admin phone; else use client phone
+        const toPhone = input.isClientSender ? (adminPhone || undefined) : input.clientPhone;
+        if (toPhone && process.env.TWILIO_PHONE_NUMBER) {
+          Sentry.captureMessage('notifications.notifyNewMessage: Twilio SMS send start', {
+            level: 'info',
+            extra: { toPhone },
+          });
+          try {
+            const smsBody = input.smsTemplate
+              ? input.smsTemplate
+                  .replaceAll('{senderName}', sender)
+                  .replaceAll('{workspaceName}', input.workspaceName)
+                  .replaceAll('{portalUrl}', portalUrl)
+              : `${sender} sent a new message in ${input.workspaceName}. View: ${portalUrl}`;
+
+            const message = await twilioClient.messages.create({
+              body: smsBody,
+              from: process.env.TWILIO_PHONE_NUMBER,
+              to: toPhone,
+            });
+            Sentry.captureMessage('notifications.notifyNewMessage: Twilio SMS send success', {
+              level: 'info',
+              extra: { sid: message.sid, status: message.status },
+            });
+          } catch (e) {
+            // Do not fail the whole operation on SMS error
+            Sentry.captureException(e instanceof Error ? e : new Error(String(e)), {
+              extra: { toPhone },
+            });
+          }
+        }
+
+        return { success: true };
+      } catch (error) {
+        Sentry.captureException(error instanceof Error ? error : new Error(String(error)));
+        if (error instanceof TRPCError) {
+          return { success: false } as { success: false };
+        }
+        return { success: false } as { success: false };
+      }
+    }),
   // Send SMS notification
   sendSms: protectedProcedure
     .input(z.object({
@@ -291,7 +423,7 @@ export const notificationsRouter = router({
 
           // Update notification status
           if (notificationId) {
-            await client.mutation((api as any).notificationsystem.processEmailNotification, {
+            await client.mutation(api.notificationsystem.processEmailNotification, {
               notificationId: notificationId as Id<"notificationLogs">,
               resendId: data?.id || '',
               status: 'sent',
@@ -316,7 +448,7 @@ export const notificationsRouter = router({
         } catch (emailError: unknown) {
           // Update notification status
           if (notificationId) {
-            await client.mutation((api as any).notificationsystem.processEmailNotification, {
+            await client.mutation(api.notificationsystem.processEmailNotification, {
               notificationId: notificationId as Id<"notificationLogs">,
               resendId: '',
               status: 'failed',

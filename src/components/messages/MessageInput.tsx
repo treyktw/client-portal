@@ -13,10 +13,20 @@ import { toast } from "sonner";
 import { formatFileSize } from "@/lib/fileUtils";
 import Image from "next/image";
 import MessageContent from "./MessageContent";
+import { trpc } from "@/lib/trpc-client";
+import { useParams } from "next/navigation";
 
 interface MessageInputProps {
   threadId: Id<"threads">;
   workspaceId: Id<"workspaces">;
+  workspaceName?: string;
+  recipientEmails?: string[];
+  clientPhone?: string;
+  senderName?: string;
+  senderAvatar?: string;
+  threadName?: string;
+  isClientSender?: boolean;
+  adminEmail?: string;
   replyTo?: {
     _id: string;
     body: string;
@@ -29,6 +39,14 @@ interface MessageInputProps {
 export default function MessageInput({
   threadId,
   workspaceId,
+  workspaceName,
+  recipientEmails,
+  clientPhone,
+  senderName,
+  senderAvatar,
+  threadName,
+  isClientSender,
+  adminEmail,
   replyTo,
   onCancelReply,
   onTyping,
@@ -66,6 +84,11 @@ export default function MessageInput({
   }, [threadId, onTyping, updateTypingIndicator]);
 
   // Handle message send
+  const notifyNewMessage = trpc.notifications.notifyNewMessage.useMutation();
+
+  const params = useParams();
+  const slug = (params as { slug?: string } | null)?.slug || "";
+
   const handleSend = async () => {
     if (!message.trim() && files.length === 0) return;
 
@@ -113,6 +136,22 @@ export default function MessageInput({
         body: message.trim(),
         files: fileIds.length > 0 ? fileIds : undefined,
         replyToId: replyTo?._id as Id<"messages"> | undefined,
+      });
+
+      // Fire-and-forget notify via tRPC
+      notifyNewMessage.mutate({
+        slug,
+        workspaceId: workspaceId as unknown as string,
+        workspaceName: workspaceName || "Workspace",
+        threadId: threadId as unknown as string,
+        threadName,
+        recipientEmails: recipientEmails || [],
+        clientPhone,
+        senderName,
+        senderAvatar,
+        isClientSender,
+        adminEmail,
+        preview: message.trim().slice(0, 140),
       });
 
       // Show notification if links were processed

@@ -16,6 +16,7 @@ import type {
 import type * as canvases from "../canvases.js";
 import type * as crm from "../crm.js";
 import type * as crons from "../crons.js";
+import type * as emergencyLogs from "../emergencyLogs.js";
 import type * as files from "../files.js";
 import type * as folders from "../folders.js";
 import type * as messagehelpers from "../messagehelpers.js";
@@ -43,6 +44,7 @@ declare const fullApi: ApiFromModules<{
   canvases: typeof canvases;
   crm: typeof crm;
   crons: typeof crons;
+  emergencyLogs: typeof emergencyLogs;
   files: typeof files;
   folders: typeof folders;
   messagehelpers: typeof messagehelpers;

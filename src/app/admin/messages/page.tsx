@@ -29,7 +29,7 @@ export default function AdminMessagesPage() {
     body: string;
     author?: { name?: string; email: string };
   } | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen] = useState(true);
 
   // Queries
   const currentUser = useQuery(api.users.getCurrentUser);
@@ -38,7 +38,7 @@ export default function AdminMessagesPage() {
     api.threads.getThreadById,
     selectedThreadId ? { threadId: selectedThreadId as Id<"threads"> } : "skip"
   );
-  const unreadCount = useQuery(api.messages.getUnreadCount, {});
+  useQuery(api.messages.getUnreadCount, {});
 
   // Get workspace for selected thread
   const threadWorkspace = useMemo(() => {
@@ -150,6 +150,12 @@ export default function AdminMessagesPage() {
                   <MessageInput
                     threadId={selectedThread._id}
                     workspaceId={threadWorkspace._id}
+                    workspaceName={threadWorkspace.name}
+                    senderName={currentUser.name || currentUser.email?.split('@')[0]}
+                    senderAvatar={currentUser.imageUrl}
+                    threadName={selectedThread.title}
+                    recipientEmails={(threadWorkspace.invitedEmail ? [threadWorkspace.invitedEmail] : [])}
+                    clientPhone={threadWorkspace.businessInfo?.phone}
                     replyTo={replyTo}
                     onCancelReply={() => setReplyTo(null)}
                   />

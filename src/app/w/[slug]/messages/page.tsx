@@ -29,8 +29,11 @@ export default function WorkspaceMessagesPage() {
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [showThreadList, setShowThreadList] = useState(true);
   const [showRightSidebar, setShowRightSidebar] = useState(false);
-  const [replyTo, setReplyTo] = useState<any>(null);
-  const [isTyping, setIsTyping] = useState(false);
+  const [replyTo, setReplyTo] = useState<{
+    _id: string;
+    body: string;
+    author?: { name?: string; email: string };
+  } | null>(null);
 
   // Queries
   const currentUser = useQuery(api.users.getCurrentUser);
@@ -76,6 +79,9 @@ export default function WorkspaceMessagesPage() {
   }
 
   const isAdmin = currentUser.role === "admin";
+  const isClientSender = !isAdmin;
+  const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "";
+  const adminPhone = process.env.NEXT_PUBLIC_ADMIN_PHONE || "";
 
   return (
     <div className="flex h-screen bg-background">
@@ -207,9 +213,26 @@ export default function WorkspaceMessagesPage() {
               <MessageInput
                 workspaceId={workspace._id}
                 threadId={selectedThread._id}
+                workspaceName={workspace.name}
+                senderName={currentUser.name || currentUser.email?.split('@')[0]}
+                senderAvatar={currentUser.imageUrl}
+                threadName={selectedThread.title}
+                isClientSender={isClientSender}
+                adminEmail={adminEmail || undefined}
+                recipientEmails={(() => {
+                  if (isClientSender) {
+                    return adminEmail ? [adminEmail] : [];
+                  }
+                  const emails: string[] = [];
+                  if (workspace.invitedEmail && workspace.invitedEmail !== currentUser.email) {
+                    emails.push(workspace.invitedEmail);
+                  }
+                  return emails;
+                })()}
+                clientPhone={isClientSender ? (adminPhone || undefined) : workspace.businessInfo?.phone}
                 replyTo={replyTo}
                 onCancelReply={() => setReplyTo(null)}
-                onTyping={setIsTyping}
+                onTyping={() => {}}
               />
             </div>
           </>
