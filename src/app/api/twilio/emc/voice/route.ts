@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import twilio from 'twilio';
 import { ConvexHttpClient } from 'convex/browser';
 import { api } from '@/convex/_generated/api';
+import { sendEmergencyNotification } from '@/lib/emergency-notifications';
 
 const twiml = twilio.twiml;
 
