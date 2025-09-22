@@ -1,4 +1,4 @@
-// app/w/[slug]/layout.tsx - Updated header section
+// app/w/[slug]/layout.tsx - Enhanced with Driver.js
 "use client";
 
 import { use, useEffect, useState, useMemo, useCallback } from "react";
@@ -7,22 +7,16 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { ThemeProvider } from "@/providers/theme-provider";
+import { DriverProvider } from "@/providers/DriverProvider";
 import { Button } from "@/components/ui/button";
 import { useClerk, useUser } from "@clerk/nextjs";
-import { 
-
-  Settings,
-  LogOut,
-  Moon,
-  Sun,
-
-  ArrowLeft,
-  Target
-} from "lucide-react";
+import { Settings, LogOut, Moon, Sun, ArrowLeft, Target } from "lucide-react";
 import { useTheme } from "@/providers/theme-provider";
 import ClientSettingsModal from "@/components/client/ClientSettingsModal";
 import WorkspaceSettingsModal from "@/components/admin/WorkspaceSettingsModal";
 import MilestoneOverlay from "@/components/MilestoneOverlay";
+import { WelcomeModal } from "@/components/WelcomeModal";
+import { HelpButton } from "@/components/HelpButton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Link from "next/link";
 import { FileText, CheckSquare, PenTool, Folder, CreditCard, MessageSquare } from "lucide-react";
@@ -107,29 +101,39 @@ export default function WorkspaceLayout({
       defaultTheme={workspace.theme || "notebook"} 
       defaultDarkMode={workspace.darkMode || false}
     >
-      <div className="min-h-screen flex flex-col">
-        <WorkspaceHeader 
-          workspace={workspace} 
-          activeTab={activeTab} 
-          setActiveTab={setActiveTab} 
-          params={params} 
-          currentUser={currentUser}
-          onOpenMilestones={handleOpenMilestones}
-          hasNewMilestone={hasNewMilestone}
-          milestoneProgress={milestoneData?.progress || 0}
-        />
-        
-        <main className="flex-1 overflow-hidden">
-          {children}
-        </main>
+      <DriverProvider>
+        <div className="min-h-screen flex flex-col">
+          <WorkspaceHeader 
+            workspace={workspace} 
+            activeTab={activeTab} 
+            setActiveTab={setActiveTab} 
+            params={params} 
+            currentUser={currentUser}
+            onOpenMilestones={handleOpenMilestones}
+            hasNewMilestone={hasNewMilestone}
+            milestoneProgress={milestoneData?.progress || 0}
+          />
+          
+          <main className="flex-1 overflow-hidden">
+            {children}
+          </main>
 
-        {/* Milestone Overlay */}
-        <MilestoneOverlay
-          workspaceId={workspace._id}
-          open={showMilestones}
-          onClose={() => setShowMilestones(false)}
-        />
-      </div>
+          {/* Welcome Modal for first-time users */}
+          {currentUser?.role !== "admin" && (
+            <WelcomeModal workspaceName={workspace.name} />
+          )}
+
+          {/* Help Button - Always visible for clients */}
+          {currentUser?.role !== "admin" && <HelpButton />}
+
+          {/* Milestone Overlay */}
+          <MilestoneOverlay
+            workspaceId={workspace._id}
+            open={showMilestones}
+            onClose={() => setShowMilestones(false)}
+          />
+        </div>
+      </DriverProvider>
     </ThemeProvider>
   );
 }

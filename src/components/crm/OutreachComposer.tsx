@@ -421,6 +421,7 @@ export default function OutreachComposer({ contact }: OutreachComposerProps) {
             variant="outline"
             onClick={() => dispatch({ type: "RESET" })}
             disabled={state.isSending}
+            className="hover:text-red-500"
           >
             <X className="h-4 w-4 mr-2" />
             Clear

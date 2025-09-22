@@ -200,6 +200,3 @@ View in portal: {portalUrl}
     };
   },
 });
-
-// Run this from the Convex dashboard or via a one-time mutation
-// npx convex run seedTemplates:seedMessageTemplates
