@@ -1,0 +1,31 @@
+{
+  "name": "@telera/convex",
+  "version": "1.0.0",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "scripts": {
+    "dev": "convex dev",
+    "deploy": "convex deploy"
+  },
+  "dependencies": {
+    "convex": "^1.27.3"
+  },
+  "exports": {
+    ".": {
+      "types": "./index.ts",
+      "default": "./index.ts"
+    },
+    "./_generated/api": {
+      "types": "./_generated/api.d.ts",
+      "default": "./_generated/api.js"
+    },
+    "./_generated/dataModel": {
+      "types": "./_generated/dataModel.d.ts",
+      "default": "./_generated/dataModel.d.ts"
+    },
+    "./*": {
+      "types": "./*.ts",
+      "default": "./*.ts"
+    }
+  }
+}

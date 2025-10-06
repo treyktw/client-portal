@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "Telera Mobile",
+    "slug": "mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.treyktw.mobile",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "package": "com.treyktw.mobile"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": ["expo-font", "expo-secure-store", "expo-web-browser"],
+    "extra": {
+      "eas": {
+        "projectId": "a153e2e5-1b97-455b-9d00-d342b9199063"
+      },
+      "extra": {
+        "clerkPublishableKey": "${EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY}",
+        "convexUrl": "${EXPO_PUBLIC_CONVEX_URL}"
+      }
+    }
+  }
+}
